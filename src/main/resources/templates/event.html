@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="es" class="h-100" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <th:block th:replace="fragments/head :: header" />
+    <title>DreamTrip</title>
+    <script th:src="@{/js/modal.js}" src="js/modal.js"></script>
+    <script th:src="@{/js/event.js}" src="js/event.js"></script>
+    <link rel="stylesheet" th:href="@{/css/modal.css}" href="css/modal.css">
+    <link rel="stylesheet" th:href="@{/css/event.css}" href="css/event.css">
+</head>
+
+<body class="d-flex flex-column h-100">
+    <header th:replace="fragments/nav.html :: nav"></header>
+
+    <main class="flex-shrink-0">
+        <img id="images-header" class="w-100" th:src="@{/event/{id}/coverPic(id=${event.id})}" alt=""
+            style="object-fit: cover;" th:attr="onclick=|toggleShowPic('@{/event/{id}/coverPic(id=${event.id})}')|">
+        <div id="event-header" class="border-bottom">
+            <div class="d-flex px-4 py-2 justify-content-between align-items-center">
+                <div class="d-flex flex-fill justify-content-between align-items-center">
+                    <div>
+                        <span class="badge bg-primary fs-6">Event</span>
+                        <h1><span th:text="${event.title}">TITLE</span></h1>
+                        <div>
+                            <span class="badge bg-primary" th:text="${event.status}">Open</span>
+                            <th:block th:if="${isOwner}">
+                                <button type="button" class="badge bg-primary btn" onclick="toggleModalForm('status-form-cont')">✏</button>
+                                <div id="status-form-cont" class="modal-form-cont">
+                                    <form class="modal-form bg-white rounded" th:action="@{/event/{id}/change(id=${event.id})}" method="post">
+                                        <h3>Change Status</h3>
+                                        <label for="report-desc" class="form-label">Select new status:</label><br>
+                                        <select class="form-select" name="status">
+                                            <option value="OPEN" th:selected="${event.status.name().equals('OPEN')}">OPEN</option>
+                                            <option value="CLOSED" th:selected="${event.status.name().equals('CLOSED')}">CLOSED</option>
+                                            <option value="FINISH" th:selected="${event.status.name().equals('FINISH')}">FINISH</option>
+                                        </select>
+                                        <br>
+                                        <button type="submit" class="btn btn-primary">
+                                            Send
+                                        </button>
+                                        <button type="button" class="btn btn-primary" onclick="toggleModalForm('status-form-cont')">Cancel</button>
+                                    </form>
+                                </div>
+                            </th:block>
+                        </div>
+                    </div>
+                    <div class="d-flex flex-column align-items-center">
+                        <button type="button" id="fav-i" class="border-0 bg-white fs-2 mb-0" th:attr="onclick=|toggleFav(this, '${event.id}')|"
+                            th:text="${fav}? '❤️': '🤍'" th:disabled="!${isLogged}">
+                            🤍
+                        </button>
+                        <p class="text-center mb-0"><span id="fav-n"><span th:text="${numFavs}"></span></span> Likes</p>
+                    </div>
+                </div>
+                <div class="d-flex flex-column align-items-center ms-4">
+                    <h1><span th:text="${#numbers.formatDecimal(event.price,1,2)}"></span><span class="fs-4 mb-0">/person</span></h1>
+                    <h5><span id="occupied" th:text="${event.occupied}">1</span>/<span id="capacity" th:text="${event.capacity}">5</span> Vacancies</h5>
+                    <div>
+                        <div id="pbar-vacs-total" class="rounded-pill overflow-hidden">
+                            <div id="pbar-vacs-progress" class="bg-primary"
+                                th:style="'width:' + ${((event.occupied + 0.0)/ event.capacity)*200} + 'px'"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex flex-column align-items-center ms-2">
+                    <input id="check-join" type="checkbox" th:attr="onclick=|toggleJoin(this, '${event.id}')|"
+                    th:disabled="${(!isLogged || !event.status.name().equals('OPEN')) && !joined || event.status.name().equals('FINISH')}" th:checked="${joined}">
+                    <p id="text-join" class="text-center mb-0">Join</p>
+                </div>
+                <div id="acts-aft-join" class="ms-2" th:style="${joined}? 'display:flex; flex-direction: column;' : 'display: none;'">
+                    <a class="btn btn-primary mb-1" th:href="@{/chat}" href="/chat">Chat</a>
+                    <!-- Comprobar que esté acabado y que el usuario logeado esté unido al evento-->
+                    <div id="acts-aft-join" class="ms-2" th:style="${canRate} ? 'display:flex; flex-direction: column;' : 'display: none;'">
+                        
+                        <th:block th:if="${numEventRating >= 1}">
+                            <button type="submit" class="btn btn-primary" disabled="disabled">
+                                Form Done</button>       
+                             </div> 
+                        </th:block>
+                        <th:block th:if="${numEventRating == 0}">
+                            <a class="btn btn-primary" th:href="@{{id}/saveRating/(id=${event.id})}" href="/saveRating">Form</a>
+                        </th:block>
+                    </div>
+                               
+                    
+                </div>
+            </div>
+        </div>
+        <div id="event-container" class="bg-light">
+            <div class="d-flex px-4 py-2">
+                <div id="more-details" class="bg-white border my-2 me-2 p-4 flex-fill">
+                    <div id="event-description" class="mb-5">
+                        <h2>DESCRIPTION</h2>
+                        <p class="m-0" th:text="${event.description}"></p>
+                        <th:block th:if="${isOwner}">
+                            <button type="button" class="badge bg-primary btn" onclick="toggleModalForm('description-form-cont')">✏</button>
+                            <div id="description-form-cont" class="modal-form-cont">
+                                <form class="modal-form bg-white rounded" th:action="@{/event/{id}/change(id=${event.id})}" method="post">
+                                    <h3>Change Status</h3>
+                                    <label for="report-desc" class="form-label">Select new status:</label><br>
+                                    <textarea class="form-control" name="description"
+                                        style="height: 150px; width: 100%" th:text="${event.description}"></textarea>
+                                    <br>
+                                    <button type="submit" class="btn btn-primary">
+                                        Send
+                                    </button>
+                                    <button type="button" class="btn btn-primary" onclick="toggleModalForm('description-form-cont')">Cancel</button>
+                                </form>
+                            </div>
+                        </th:block>
+                    </div>
+                    <div th:if="${event.notes.length > 0}" id="event-notes" class="mb-5">
+                        <h2>NOTES</h2>
+                        <div class="d-flex flex-wrap" th:each="note: ${event.notes.split(',')}">
+                            <th:block th:switch="${note}">
+                                <th:block th:case="'NO_KIDS'">
+                                    <p class="flex-fill"><span class="fs-4">👶❌</span> Babies are not allowed</p>
+                                </th:block>
+                                <th:block th:case="'NO_ANIMALS'">
+                                    <p class="flex-fill"><span class="fs-4">🐾❌</span> Pets are not allowed</p>
+                                </th:block>
+                                <th:block th:case="'KIDS'">
+                                    <p class="flex-fill"><span class="fs-4">👶✅</span> Babies are allowed</p>
+                                </th:block>
+                                <th:block th:case="'ANIMALS'">
+                                    <p class="flex-fill"><span class="fs-4">🐾✅</span> Pets allowed</p>
+                                </th:block>
+                            </th:block>
+                        </div>
+                    </div>
+                    <div id="event-m-imgs" class="mb-5">
+                        <h2>Images</h2>
+                        <th:block th:if="${photos.size() == 0}">
+                            <p>There are no images to show.</p>
+                        </th:block>
+                        <div class="d-flex flex-wrap gap-2 my-3">
+                            <th:block th:each="photo: ${photos}">
+                                <div class="event-pic position-relative">
+                                    <img th:src="@{/event/{id}/pic/{n}(id=${event.id},n=${photo})}" alt="" width="280" height="150"
+                                        style="object-fit: cover;" th:attr="onclick=|toggleShowPic('@{/event/{id}/pic/{n}(id=${event.id},n=${photo})}')|">
+                                    <th:block th:if="${isOwner}">
+                                        <form class="position-absolute" th:action="@{/event/{id}/rmPic/{n}(id=${event.id},n=${photo})}" method="post"
+                                            style="top: 5px; right: 5px;">
+                                            <button type="submit" class="p-0 rounded-circle btn btn-light" style="width: 30px; height: 30px;">
+                                                ❌
+                                                <span class="visually-hidden">Delete Image</span>
+                                            </button>
+                                        </form>
+                                        <form class="position-absolute" th:action="@{/event/{id}/coverPic/{n}(id=${event.id},n=${photo})}" method="post"
+                                            style="bottom: 5px; left: 5px;">
+                                            <button type="submit" class="btn btn-primary bt-sm">
+                                                Set As Cover
+                                                <span class="visually-hidden">Set As Cover</span>
+                                            </button>
+                                        </form>
+                                    </th:block>
+                                </div>
+                            </th:block>
+                        </div>
+
+                        <div id="pic-show-cont" style="display: none" onclick="toggleShowPic()">
+                            <img src="" alt="">
+                        </div>
+
+                        <th:block th:if="${isOwner}">
+                            <button type="button" class="btn btn-primary mb-1" onclick="toggleModalForm('pic-form-cont')">Add Image</button>
+                            <div id="pic-form-cont" class="modal-form-cont">
+                                <form class="modal-form bg-white rounded" th:action="@{/event/{id}/addPic(id=${event.id})}" method="post"
+                                    enctype="multipart/form-data">
+                                    <h3>Upload an image.</h3>
+                                    <input type="hidden" name="saveRatingValue" value="false">
+                                    <label for="report-desc" class="form-label">Upload an image:</label>
+                                    <input class="form-control" type="file" id="form-file" name="photo">
+                                    <br>
+                                    <button type="submit" class="btn btn-primary">
+                                        Send
+                                    </button>
+                                    <button type="button" class="btn btn-primary" onclick="toggleModalForm('pic-form-cont')">Cancel</button>
+                                </form>
+                            </div>
+                        </th:block>
+
+                    </div>
+                    <div th:if="${isOwner}">
+                        <form action="" method="get">
+                            <button id="delete-event" type="submit" class="btn btn-danger">Delete this event</button>
+                        </form>
+                    </div>
+                </div>
+                <div id="main-details" class="bg-white border my-2 p-4 pb-5 flex-fill align-self-start">
+                    <h2 class="text-center">DETAILS</h2>
+                    <div class="event-dets-sec">
+                        <p><span class="fs-5 fw-bold">Destination: </span> <span th:text="${event.destination}"></span> <span class="fs-5">🌍</span></p>
+                    </div>
+                    <div class="event-dets-sec">
+                        <!-- <p><span class="fs-5 fw-bold"><span th:text="${event.initDate}"></span> - <span th:text="${event.finishDate}"></span> </span></p> -->
+                        <p class="m-0"><span class="fs-5 fw-bold">📅 From: </span> <span th:text="${event.initDate}"></span></p>
+                        <p><span class="fs-5 fw-bold">📅 To: </span> <span th:text="${event.finishDate}"></span></p>
+                        <!-- <div id="event-dets-calendar" class="bg-primary"> -->
+                            <!-- CALENDARIO -->
+                        <!-- </div> -->
+                    </div>
+                    <div class="event-dets-sec">
+                        <p><span class="fs-5 fw-bold">Meeting point: </span> <span th:text="${event.reunionPoint}"></span><span class="fs-5">🌍</span></p>
+                    </div>
+                    <div class="event-dets-sec">
+                        <p><span class="fs-5 fw-bold">Transport: </span>
+                            <!-- <span th:text="${event.transport}"></span><span class="fs-5">✈️</span> -->
+                            <th:block th:each="t: ${event.transport.split(',')}">
+                                <th:block th:switch="${t}">
+                                    <th:block th:case="'PLANE'">
+                                        <span class="fs-4">✈️</span> Plane
+                                    </th:block>
+                                    <th:block th:case="'BUS'">
+                                        <span class="fs-4">🚌</span> Autobus
+                                    </th:block>
+                                    <th:block th:case="'CAR'">
+                                        <span class="fs-4">🚗</span> Car
+                                    </th:block>
+                                    <th:block th:case="'SHIP'">
+                                        <span class="fs-4">🚢</span> Ship
+                                    </th:block>
+                                </th:block>
+                            </th:block>
+                        </p>
+                    </div>
+                    <h3 class="text-center">ORGANIZER</h3>
+                    <div class="event-dets-sec d-flex align-items-center mb-3">
+                        <a class="text-decoration-none text-body" th:href="@{/user/{id}(id=${event.userOwner.id})}">
+                            <img class="rounded-circle align-self-start" th:src="@{/user/{id}/pic(id=${event.userOwner.id})}" alt="profile" 
+                                style="width: 100px; height: 100px; object-fit: cover;">
+                        </a>
+                        <div class="ms-4">
+                            <h5><a class="text-decoration-none text-body" th:href="@{/user/{id}(id=${event.userOwner.id})}">
+                                <span th:text="${event.userOwner.firstName}">Name</span>
+                            </a></h5>
+                            <h5><a class="text-decoration-none text-body" th:href="@{/user/{id}(id=${event.userOwner.id})}">
+                                <span th:text="${event.userOwner.lastName}">Surname</span>
+                            </a></h5>
+                            <p class="mb-0">
+                                <span th:if="${ownerRatings > 0}">
+                                  <span th:each="rating : ${#numbers.sequence(1, ownerRatings)}">⭐</span>
+                                  <span th:if="${ownerRatings % 1 != 0}">★</span>
+                                </span>
+                                <span th:unless="${ownerRatings > 0}">No ratings</span>
+                            </p>
+                              
+                              
+                        </div>
+                    </div>
+                    <th:block th:if="${isLogged}">
+                        <button type="button" class="btn btn-danger" onclick="toggleModalForm('report-form-cont')">Report</button>
+                        <div id="report-form-cont" class="modal-form-cont">
+                            <form class="modal-form bg-white rounded">
+                                <h3>Report <span th:text="${event.userOwner.firstName} + ' ' + ${event.userOwner.lastName}"></span> .</h3>
+                                <label for="report-desc" class="form-label">Reason of the report:</label>
+                                <textarea class="form-control" id="report-desc" name="report-desc" placeholder="Leave a comment here" style="height: 150px; width: 100%"></textarea>
+                                <br>
+                                <button type="button" class="btn btn-primary" th:attr="onclick=|reportUser('${event.userOwner.id}')|">
+                                    Send
+                                </button>
+                                <button type="button" class="btn btn-primary" onclick="toggleModalForm('report-form-cont')">Cancel</button>
+                            </form>
+                        </div>
+                    </th:block>
+                </div>
+            </div>
+        </div>
+    </main>
+    <th:block th:replace="fragments/footer.html :: footer" />
+</body>
+
+</html>

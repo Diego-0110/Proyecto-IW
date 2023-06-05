@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html class="h-100" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <th:block th:replace="fragments/head :: header" />
+    <script th:src="@{/js/chat.js}" src="js/chat.js"></script>
+    <link rel="stylesheet" th:href="@{/css/chat.css}" href="css/chat.css">
+    <title>DreamTrip</title>
+</head>
+
+<body class="d-flex flex-column h-100">
+    <header th:replace="fragments/nav.html :: nav"></header>
+    <div class="p-2 d-flex gap-2 h-75" style="flex: 1; min-height: 300px;">
+        <div id="chat-list" class="w-50 d-flex flex-column gap-2 overflow-auto pe-2" style="max-width: 300px;">
+            <!-- Lista de chats disponibles -->
+            <p class="mb-0 text-center fw-bold">Lista de Chats</p>
+            <th:block th:each="event: ${events}">
+                <div th:id="${'chat-b-' + event.id}" class="chat-button card bg-light" th:attr="onclick=|setChat(${event.id})|">
+                    <div class="card-body">
+                        <h5 class="card-title"><span th:text="${event.title}">Nombre del chat</span>
+                            <span th:text="${'#' + event.id}">#1</span></h5>
+                        <th:block th:if="${chats.get(event.id).size() != 0}">
+                            <p class="card-text mb-1 text-nowrap text-truncate">
+                                <strong th:if="${chats.get(event.id).get(chats.get(event.id).size() - 1).sender.id != userId}"
+                                    th:text="${chats.get(event.id).get(chats.get(event.id).size() - 1).sender.username + ':'}">Nombre:</strong>
+                                <strong th:if="${chats.get(event.id).get(chats.get(event.id).size() - 1).sender.id == userId}">Tú:</strong>
+                                <span th:text="${chats.get(event.id).get(chats.get(event.id).size() - 1).text}"
+                                    >This is some text within...</span></p>
+                            <div class="date-cont d-flex justify-content-between">
+                                <p class="date-sent card-subtitle text-muted" style="font-size: 0.8em"
+                                    th:text="${#temporals.format(chats.get(event.id).get(chats.get(event.id).size() - 1).dateSent,'dd-MM-yyyy HH:mm')}">19:00</p>
+                                <p th:if="${chats.get(event.id).get(chats.get(event.id).size() - 1).sender.id == userId}"
+                                    style="font-size: 0.8em" class="read-icon card-subtitle">✅</p>
+                            </div>
+                        </th:block>
+                        <th:block th:if="${chats.get(event.id).size() == 0}">
+                            <p class="card-text mb-1">No hay mensajes.</p>
+                        </th:block>
+                    </div>
+                </div>
+            </th:block>
+            <div th:if="${events.size() == 0}" class="card bg-light">
+                <div class="card-body">
+                    No te has unido a ningún evento.
+                </div>
+            </div>
+        </div>
+        <div id="chat-ini" class="card w-100">
+            <div class="card-header text-center fw-bold" style="background-color: var(--bs-gray-200)">
+                Selecciona un chat.
+            </div>
+            <div class="card-body">
+                No hay mensajes.
+            </div>
+        </div>
+        <th:block th:each="event: ${events}">
+            <div th:id="${'chat-' + event.id}" class="card w-100" style="display: none;">
+                <!-- Chat actual seleccionado -->
+                <div class="card-header text-center fw-bold" style="background-color: var(--bs-gray-200)">
+                    <span th:text="${event.title}">Nombre del chat</span><span th:text="${'#' + event.id}"></span>
+                </div>
+                <!-- Lista de mensajes -->
+                <div class="chat-msgs card-body d-flex flex-column gap-2 overflow-auto" style="max-height: 100%;">
+                    <div th:if="${chats.get(event.id).size() >= maxMsgPage}" class="load-msgs-cont d-flex justify-content-center">
+                        <input th:id="${'chat-' + event.id + '-page'}" type="hidden" value="0">
+                        <input th:id="${'chat-' + event.id + '-date'}" type="hidden"
+                            th:value="${chats.get(event.id).get(0).dateSent}">
+                        <button type="button" class="btn" style="background-color: var(--bs-gray-200);"
+                            th:attr="onclick=|loadMoreMsgs(${event.id}, ${userId})|">Load more messages...</button>
+                    </div>
+                    <th:block th:each="chat: ${chats.get(event.id)}">
+                        <div th:class="'msg-container w-100 d-flex' + ${(chat.sender.id == userId)? ' local-msg':''}">
+                            <div class="card">
+                                <div class="card-body p-2">
+                                    <p th:if="${chat.sender.id != userId}" class="card-title mb-0 text-primary"
+                                        th:text="${chat.sender.username}">Nombre del emisor</p>
+                                    <p class="card-text mb-1" th:text="${chat.text}">This is some text within a card body.</p>
+                                    <div class="d-flex justify-content-between gap-3">
+                                        <p class="card-subtitle text-muted"
+                                            th:text="${#temporals.format(chat.dateSent,'dd-MM-yyyy HH:mm')}">19:00</p>
+                                        <p th:if="${chat.sender.id == userId}" class="card-subtitle">✅</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </th:block>
+                </div>
+                <div class="card-footer" style="background-color: var(--bs-gray-200)">
+                    <p id="userId" th:text="${userId}" style="display: none;"></p>
+                    <div class="d-flex gap-2 align-items-start">
+                        <textarea th:id="${'input-msg-' + event.id}" class="form-control" placeholder="Escribe algo..." rows="3" style="resize: none;"></textarea>
+                        <button class="btn btn-outline-primary" type="button" onclick="sendMsg()">Enviar</button>
+                    </div>
+                </div>
+            </div>
+        </th:block>
+    </div>
+    <th:block th:replace="fragments/footer.html :: footer" />
+</body>
+
+</html>

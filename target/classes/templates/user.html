@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html class="h-100" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <th:block th:replace="fragments/head :: header" />
+    <title>IW: Perfil</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" th:href="@{/css/user.css}" href="css/user.css">
+    <script th:src="@{/js/user.js}" src="js/user.js"></script>
+</head>
+
+<body class="d-flex flex-column h-100">
+    <header th:replace="fragments/nav.html :: nav"></header>
+    <main class="flex-shrink-0">
+
+        <section class="vh-50">
+            <div class="container-fluid d-flex align-items-end justify-content-center" 
+                th:style="'background:url('+ @{/user/{id}/pic(id=${user.id})} +'); background-size: cover; height: 300px; margin-bottom:80px; background-position: center;'">
+                <div class="position-relative" style="width: fit-content; margin-bottom: -60px;">
+                    <img th:src="@{/user/{id}/pic(id=${user.id})}" style="width: 150px; height: 150px; border-radius: 50%; object-fit: cover; border: 3px solid white;"/>
+                    <th:block th:if="${isOwner}">
+                        <button class="position-absolute p-2 rounded-circle btn btn-primary" style="width: 40px; height: 40px; top: 0px; right: 0px;"
+                            onclick="togglePicForm()">
+                            ✏
+                            <span class="visually-hidden">unread messages</span>
+                        </button>
+                    </th:block>
+                </div>
+            </div>
+        </section>
+
+        <p class="lead fw-bold mb-1 text-center">
+            <strong><span th:text="${user.username}">Pepe</span></strong>
+        </p>
+        <div class="row g-0 gap-3 mb-4">
+            <div class="col">
+                <!-- My events -->
+                <div class="d-flex px-4 pt-3 pb-4 gap-3 flex-column" style="background-color: #f8f9fa;">
+                    <p class="lead fw-bold mb-1 text-center">My Events</p>
+                    <div class="event d-flex rounded overflow-hidden" th:each="event:${allMyEvents}">
+                        <div class="d-flex bg-white w-100 justify-content-between" >
+                            <div class="p-2">
+                                <a th:text="${event.title}" th:href="@{/event/{id}(id=${event.id})}" class="card-btn btn btn-primary mb-1" style="border-radius: 10px;">Title</a>                                        <p class="small mb-1"><i class="far fa-star fa-lg"></i>
+                                <span th:text="${event.status}" class="badge me-2" style="border-radius: 10px; background-color: rgb(91, 189, 221);">Status</span>
+                                <span th:text="${event.type}" class="badge me-2" style="border-radius: 10px; background-color: rgb(91, 189, 221);">Type</span>
+                                <p class="small mb-0 mt-2"><i class="far fa-star fa-lg"></i>Trip by:
+                                    <a class="text-decoration-none text-body" th:href="@{/user/{id}(id=${event.userOwner.id})}">
+                                        <strong><span th:text="${event.userOwner.username}">Pepe</span></strong>
+                                    </a>
+                                </p>
+                                <p class="small mb-0"><i class="far fa-star fa-lg"></i><a th:text="${event.initDate}">Date</a></p>
+                            </div>
+                            <img th:src="@{/event/{id}/coverPic(id=${event.id})}" width="200" height="150" alt="image 1" style="object-fit: cover;">
+                        </div>
+                    </div>
+
+                    <!-- Create new trip: show if it's his profile -->
+                    <th:block th:if="${isOwner}">
+                        <a id="add-event" th:href="@{/formAddEvent}" href="/formAddEvent" class="m-auto btn btn-primary d-flex align-items-center" style="border-radius: 10px;">
+                            <i class="material-icons">add_circle </i> Add Event
+                        </a>
+                        <!-- Show a model -->
+                    </th:block>
+                </div>
+            </div>
+
+            <div class="col d-flex flex-column gap-3">
+                <!-- User information -->
+                <div class="px-4 pt-3 pb-4" style="background-color: #f8f9fa;">
+                    <p class="lead fw-bold mb-1 text-center">About</p>
+                    <p class="font-italic mb-1  b" style="font-weight: bold;">FirstName : <span th:text="${user.firstName}" style="font-weight: normal;"></span></p>
+                    <p class="font-italic mb-1 b" style="font-weight: bold;">LastName :  <span th:text="${user.lastName}" style="font-weight: normal;"></span></p>
+                    <p class="font-italic mb-0 b" style="font-weight: bold;">Location : <span th:text="${user.location}" style="font-weight: normal;"></span></p>
+                    <p class="font-italic mb-0 b" style="font-weight: bold;">Languages : <span th:text="${user.languages}" style="font-weight: normal;"></span></p>
+                    <p class="font-italic mb-0 b" style="font-weight: bold;">Sex :</p>
+                    <p class="font-italic mb-0 b" style="font-weight: bold;">Age : <span th:text="${age}" style="font-weight: normal;"></span></p>
+                    <p class="font-italic mb-0 b" style="font-weight: bold;">Email : <span th:text="${user.email}" style="font-weight: normal;"></span></p>
+                    <p class="font-italic mb-0 b">Evaluation</p>
+                </div>
+
+                <!-- User description -->
+                <div class="px-4 pt-3 pb-4" style="background-color: #f8f9fa;">
+                    <p class="lead fw-bold mb-1">Description</p>
+                    <p class="font-italic mb-1" th:text="${user.description}">Little description of the user.</p>
+                </div>
+
+                 <!-- Events finished -->
+                 <div class="d-flex px-4 pt-3 pb-4 gap-3 flex-column" style="background-color: #f8f9fa;">
+                    <p class="lead fw-bold mb-1 text-center">Finish Events</p>
+                    <div class="event d-flex rounded overflow-hidden" th:each="event:${allEventsJoinedClosed}">
+                        <div class="d-flex bg-white w-100 justify-content-between" >
+                            <div class="p-2">
+                                <a th:text="${event.title}" th:href="@{/event/{id}(id=${event.id})}" class="card-btn btn btn-primary mb-1" style="border-radius: 10px;">Title</a>                                        <p class="small mb-1"><i class="far fa-star fa-lg"></i>
+                                <span th:text="${event.status}" class="badge me-2" style="border-radius: 10px; background-color: rgb(91, 189, 221);">Status</span>
+                                <span th:text="${event.type}" class="badge me-2" style="border-radius: 10px; background-color: rgb(91, 189, 221);">Type</span>
+                                <p class="small mb-0 mt-2"><i class="far fa-star fa-lg"></i>Trip by:
+                                    <a class="text-decoration-none text-body" th:href="@{/user/{id}(id=${event.userOwner.id})}">
+                                        <strong><span th:text="${event.userOwner.username}">Pepe</span></strong>
+                                    </a>
+                                </p>
+                                <p class="small mb-0"><i class="far fa-star fa-lg"></i><a th:text="${event.initDate}">Date</a></p>
+                            </div>
+                            <img th:src="@{/event/{id}/coverPic(id=${event.id})}" width="200" height="150" alt="image 1" style="object-fit: cover;">
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="col">
+                <!-- Events Joined -->
+                <div class="d-flex px-4 pt-3 pb-4 gap-3 flex-column" style="background-color: #f8f9fa;">
+                    <p class="lead fw-bold mb-1 text-center">Events Joined</p>
+                    <div class="event d-flex rounded overflow-hidden" th:each="event:${allEventsJoined}">
+                        <div class="d-flex bg-white w-100 justify-content-between" >
+                            <div class="p-2">
+                                <a th:text="${event.title}" th:href="@{/event/{id}(id=${event.id})}" class="card-btn btn btn-primary mb-1" style="border-radius: 10px;">Title</a>                                        <p class="small mb-1"><i class="far fa-star fa-lg"></i>
+                                <span th:text="${event.status}" class="badge me-2" style="border-radius: 10px; background-color: rgb(91, 189, 221);">Status</span>
+                                <span th:text="${event.type}" class="badge me-2" style="border-radius: 10px; background-color: rgb(91, 189, 221);">Type</span>
+                                <p class="small mb-0 mt-2"><i class="far fa-star fa-lg"></i>Trip by:
+                                    <a class="text-decoration-none text-body" th:href="@{/user/{id}(id=${event.userOwner.id})}">
+                                        <strong><span th:text="${event.userOwner.username}">Pepe</span></strong>
+                                    </a>
+                                </p>
+                                <p class="small mb-0"><i class="far fa-star fa-lg"></i><a th:text="${event.initDate}">Date</a></p>
+                            </div>
+                            <img th:src="@{/event/{id}/coverPic(id=${event.id})}" width="200" height="150"
+                                                 alt="image 1" style="object-fit: cover;">
+                        </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    <th:block th:if="${isOwner}">
+        <div id="pic-form-cont" style="display: none">
+            <form class="pic-form bg-white rounded" th:action="@{/user/{id}/pic(id=${user.id})}" method="post"
+                enctype="multipart/form-data">
+                <h3>Upload an image.</h3>
+                <label for="report-desc" class="form-label">Upload an image:</label>
+                <input class="form-control" type="file" id="formFile" name="photo">
+                <br>
+                <button type="submit" class="btn btn-primary">
+                    Send
+                </button>
+                <button type="button" class="btn btn-primary" onclick="togglePicForm()">Cancel</button>
+            </form>
+        </div>
+    </th:block>
+    <th:block th:replace="fragments/footer.html :: footer" />
+
+    <!-- <script th:src="@{/js/ajax-demo.js}"></script> -->
+</body>
+
+</html>
