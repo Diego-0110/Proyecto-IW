@@ -13,4 +13,8 @@ public interface ReportRepository extends JpaRepository<Report,Long> {
     @Query(value = "SELECT * FROM Report r " + 
     "WHERE r.user_Target = :userId", nativeQuery = true)  
     ArrayList<Report> findReportsByUserId(@Param("userId") long userId);
+
+    @Query(value = "SELECT count(*) FROM Report r " + 
+    "WHERE r.user_Target = :userId", nativeQuery = true)  
+    int numReportsByUserId(@Param("userId") long userId);
 }

@@ -62,7 +62,7 @@ public class MessageController {
 	@GetMapping("")
     public String index(Model model, HttpSession session) {
         User u = (User) session.getAttribute("u");
-        ArrayList<Event> events = eventRepository.getEventsJoined(u.getId());
+        ArrayList<Event> events = eventRepository.getAllEventsJoined(u.getId());
         HashMap<Long, ArrayList<Message>> chats = new HashMap<>();
         for (Event e: events) {
             ArrayList<Message> msgs = new ArrayList<>(messageRepository.getMsgFromChat(e.getId(), 
@@ -87,6 +87,7 @@ public class MessageController {
         ueId.setUser(u.getId());
         UserEvent ue = entityManager.find(UserEvent.class, ueId);
         if (ue == null){
+            // User have to be joined in the chat.
             return ResponseEntity.ok("Invalid Request");
         }
         return ResponseEntity.ok(convertToResponse(messageRepository.getMsgFromChatBefore(id, beforeDate, PageRequest.of(0, MSG_PAGE))));

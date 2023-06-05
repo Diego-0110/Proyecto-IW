@@ -5,7 +5,10 @@
     <th:block th:replace="fragments/head :: header" />
     <title>IW: Perfil</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" th:href="@{/css/modal.css}" href="css/modal.css">
+    <link rel="stylesheet" th:href="@{/css/stars-rating.css}" href="css/stars-rating.css">
     <link rel="stylesheet" th:href="@{/css/user.css}" href="css/user.css">
+    <script th:src="@{/js/modal.js}" src="js/modal.js"></script>
     <script th:src="@{/js/user.js}" src="js/user.js"></script>
 </head>
 
@@ -14,108 +17,163 @@
     <main class="flex-shrink-0">
 
         <section class="vh-50">
-            <div class="container-fluid d-flex align-items-end justify-content-center" 
-                th:style="'background:url('+ @{/user/{id}/pic(id=${user.id})} +'); background-size: cover; height: 300px; margin-bottom:80px; background-position: center;'">
-                <div class="position-relative" style="width: fit-content; margin-bottom: -60px;">
+            <!-- <div class="container-fluid d-flex align-items-end justify-content-center" 
+                th:style="'background:url('+ @{/user/{id}/pic(id=${user.id})} +'); background-size: cover; height: 200px; margin-bottom:45px; background-position: center;'">
+            </div> -->
+            <img class="w-100" th:src="@{/user/{id}/pic(id=${user.id})}" src="" alt="" style="object-fit: cover; height: 200px; object-position: center;">
+            <div class="d-flex align-items-start gap-2 px-3 py-3 border-bottom">
+                <div class="position-relative" style="width: fit-content; margin-top: -90px;">
                     <img th:src="@{/user/{id}/pic(id=${user.id})}" style="width: 150px; height: 150px; border-radius: 50%; object-fit: cover; border: 3px solid white;"/>
                     <th:block th:if="${isOwner}">
                         <button class="position-absolute p-2 rounded-circle btn btn-primary" style="width: 40px; height: 40px; top: 0px; right: 0px;"
-                            onclick="togglePicForm()">
+                            onclick="toggleModalForm('pic-form-cont')">
                             ✏
                             <span class="visually-hidden">unread messages</span>
                         </button>
                     </th:block>
                 </div>
+                <div class="d-flex w-100 justify-content-between align-items-center">
+                    <h2 class="mb-0 fw-bold" th:text="${user.username}">Juan</h2>
+                    <th:block th:if="${isLogged && !isOwner}">
+                        <button type="button" class="btn btn-danger" onclick="toggleModalForm('report-form-cont')">Report</button>
+                        <div id="report-form-cont" class="modal-form-cont">
+                            <form class="modal-form bg-white rounded">
+                                <h3>Report <span th:text="${user.firstName} + ' ' + ${user.lastName}"></span>.</h3>
+                                <!-- <input id="report-event" type="hidden" name="event" th:value="${event.id}"> -->
+                                <label for="report-cause" class="form-label">Reason of the report:</label>
+                                <select class="form-select" name="cause" id="report-cause">
+                                    <option value="EVENT_PAGE">Content in event's page</option>
+                                    <option value="MESSAGE">Sended message/s</option>
+                                    <option value="DURING_EVENT">Behavior during the event</option>
+                                </select>
+                                <br>
+                                <label for="report-desc" class="form-label">Details of this report:</label>
+                                <textarea class="form-control" id="report-desc" name="description" placeholder="Leave a comment here..." style="height: 150px; width: 100%"></textarea>
+                                <br>
+                                <button type="button" class="btn btn-primary" th:attr="onclick=|reportUser('${user.id}')|">
+                                    Send
+                                </button>
+                                <button type="button" class="btn btn-primary" onclick="toggleModalForm('report-form-cont')">Cancel</button>
+                            </form>
+                        </div>
+                    </th:block>
+                </div>
             </div>
         </section>
 
-        <p class="lead fw-bold mb-1 text-center">
-            <strong><span th:text="${user.username}">Pepe</span></strong>
-        </p>
-        <div class="row g-0 gap-3 mb-4">
-            <div class="col">
-                <!-- My events -->
-                <div class="d-flex px-4 pt-3 pb-4 gap-3 flex-column" style="background-color: #f8f9fa;">
-                    <p class="lead fw-bold mb-1 text-center">My Events</p>
-                    <div class="event d-flex rounded overflow-hidden" th:each="event:${allMyEvents}">
-                        <div class="d-flex bg-white w-100 justify-content-between" >
-                            <div class="p-2">
-                                <a th:text="${event.title}" th:href="@{/event/{id}(id=${event.id})}" class="card-btn btn btn-primary mb-1" style="border-radius: 10px;">Title</a>                                        <p class="small mb-1"><i class="far fa-star fa-lg"></i>
-                                <span th:text="${event.status}" class="badge me-2" style="border-radius: 10px; background-color: rgb(91, 189, 221);">Status</span>
-                                <span th:text="${event.type}" class="badge me-2" style="border-radius: 10px; background-color: rgb(91, 189, 221);">Type</span>
-                                <p class="small mb-0 mt-2"><i class="far fa-star fa-lg"></i>Trip by:
-                                    <a class="text-decoration-none text-body" th:href="@{/user/{id}(id=${event.userOwner.id})}">
-                                        <strong><span th:text="${event.userOwner.username}">Pepe</span></strong>
+        <div class="d-flex align-items-start gap-2 bg-light px-4 pt-2 pb-4" style="flex-wrap: wrap;">
+            <div class="d-flex flex-column gap-2" style="flex-basis: 400px; flex-grow: 1;">
+                <div class="bg-white border px-4 pt-3 pb-4">
+                    <h3 class="text-center fw-bold">About</h3>
+                    <p class="mb-0"><strong>FirstName: </strong><span th:text="${user.firstName}"></span></p>
+                    <p class="mb-0"><strong>LastName:  </strong><span th:text="${user.lastName}"></span></p>
+                    <p class="mb-0"><strong>Location: </strong><span th:text="${user.location}"></span></p>
+                    <p class="mb-0"><strong>Languages: </strong><span th:text="${user.languages}"></span></p>
+                    <p class="mb-0"><strong>Age: </strong><span th:text="${age}"></span></p>
+                    <p class="mb-0"><strong>Email: </strong><span th:text="${user.email}"></span></p>
+                    <h5 class="text-center fw-bold mt-2">Description</h5>
+                    <p class="mb-0" th:text="${user.description}"></p>
+                </div>
+                <div class="bg-white border px-4 pt-3 pb-4">
+                    <h3 class="text-center fw-bold">Ratings</h3>
+                    <p th:if="${numOwnerRatings == 0}">This user has no ratings.</p>
+                    <div class="user-rating d-flex flex-column align-items-start mb-3" th:if="${numOwnerRatings > 0}">
+                        <div class="rating-static">
+                            <input type="radio" id="user-star5" name="rating" value="10" disabled th:checked="${avgOwnerRating == 10}">
+                            <label class="full" for="user-star5" title="5 stars"></label>
+                            <input type="radio" id="user-star4half" name="rating" value="9" disabled th:checked="${avgOwnerRating == 9}">
+                            <label class="half" for="user-star4half" title="4.5 stars"></label>
+                            <input type="radio" id="user-star4" name="rating" value="8" disabled th:checked="${avgOwnerRating == 8}">
+                            <label class="full" for="user-star4" title="4 stars"></label>
+                            <input type="radio" id="user-star3half" name="rating" value="7" disabled th:checked="${avgOwnerRating == 7}">
+                            <label class="half" for="user-star3half" title="3.5 stars"></label>
+                            <input type="radio" id="user-star3" name="rating" value="6" disabled th:checked="${avgOwnerRating == 6}">
+                            <label class="full" for="user-star3" title="3 stars"></label>
+                            <input type="radio" id="user-star2half" name="rating" value="5" checked disabled th:checked="${avgOwnerRating == 5}">
+                            <label class="half" for="user-star2half" title="2.5 stars"></label>
+                            <input type="radio" id="user-star2" name="rating" value="4" disabled th:checked="${avgOwnerRating == 4}">
+                            <label class="full" for="user-star2" title="2 stars"></label>
+                            <input type="radio" id="user-star1half" name="rating" value="3" disabled th:checked="${avgOwnerRating == 3}">
+                            <label class="half" for="user-star1half" title="1.5 stars"></label>
+                            <input type="radio" id="user-star1" name="rating" value="2" disabled th:checked="${avgOwnerRating == 2}">
+                            <label class="full" for="user-star1" title="1 star"></label>
+                            <input type="radio" id="user-starhalf" name="rating" value="1" disabled th:checked="${avgOwnerRating == 1}">
+                            <label class="half" for="user-starhalf" title=" 0.5 stars"></label>
+                        </div>
+                        <p class="mb-0 ps-1"><span th:text="${numOwnerRatings}">1</span> Ratings</p>
+                    </div>
+                    <div class="d-flex flex-column gap-2">
+                        <div class="border d-flex flex-column align-items-start px-3 pt-3 pb-4" th:each="rating : ${ownerRatings}">
+                            <div class="d-flex justify-content-between w-100">
+                                <h5><a class="text-decoration-none fw-bold" th:href="@{/user/{id}(id=${rating.userSource.id})}"
+                                    th:text="${rating.userSource.username}">Alex</a></h5>
+                                <p class="fw-bold mb-0">
+                                    <a class="text-decoration-none" th:href="@{/event/{id}(id=${rating.event.id})}"
+                                        th:text="'Event#' + ${rating.event.id}">
+                                        Event#1
                                     </a>
                                 </p>
-                                <p class="small mb-0"><i class="far fa-star fa-lg"></i><a th:text="${event.initDate}">Date</a></p>
                             </div>
-                            <img th:src="@{/event/{id}/coverPic(id=${event.id})}" width="200" height="150" alt="image 1" style="object-fit: cover;">
+                            <div class="rating-static">
+                                <input type="radio" th:id="'event-' + ${rating.userSource.id} + 'star5'" th:name="'rating-' + ${rating.userSource.id}" value="10" disabled th:checked="${rating.rating == 10}">
+                                <label class="full" th:for="'event-' + ${rating.userSource.id} + 'star5'" title="5 stars"></label>
+                                <input type="radio" th:id="'event-' + ${rating.userSource.id} + 'star4half'" th:name="'rating-' + ${rating.userSource.id}" value="9" disabled th:checked="${rating.rating == 9}">
+                                <label class="half" th:for="'event-' + ${rating.userSource.id} + 'star4half'" title="4.5 stars"></label>
+                                <input type="radio" th:id="'event-' + ${rating.userSource.id} + 'star4'" th:name="'rating-' + ${rating.userSource.id}" value="8" disabled th:checked="${rating.rating == 8}">
+                                <label class="full" th:for="'event-' + ${rating.userSource.id} + 'star4'" title="4 stars"></label>
+                                <input type="radio" th:id="'event-' + ${rating.userSource.id} + 'star3half'" th:name="'rating-' + ${rating.userSource.id}" value="7" disabled th:checked="${rating.rating == 7}">
+                                <label class="half" th:for="'event-' + ${rating.userSource.id} + 'star3half'" title="3.5 stars"></label>
+                                <input type="radio" th:id="'event-' + ${rating.userSource.id} + 'star3'" th:name="'rating-' + ${rating.userSource.id}" value="6" disabled th:checked="${rating.rating == 6}">
+                                <label class="full" th:for="'event-' + ${rating.userSource.id} + 'star3'" title="3 stars"></label>
+                                <input type="radio" th:id="'event-' + ${rating.userSource.id} + 'star2half'" th:name="'rating-' + ${rating.userSource.id}" value="5" disabled th:checked="${rating.rating == 5}">
+                                <label class="half" th:for="'event-' + ${rating.userSource.id} + 'star2half'" title="2.5 stars"></label>
+                                <input type="radio" th:id="'event-' + ${rating.userSource.id} + 'star2'" th:name="'rating-' + ${rating.userSource.id}" value="4" disabled th:checked="${rating.rating == 4}">
+                                <label class="full" th:for="'event-' + ${rating.userSource.id} + 'star2'" title="2 stars"></label>
+                                <input type="radio" th:id="'event-' + ${rating.userSource.id} + 'star1half'" th:name="'rating-' + ${rating.userSource.id}" value="3" disabled th:checked="${rating.rating == 3}">
+                                <label class="half" th:for="'event-' + ${rating.userSource.id} + 'star1half'" title="1.5 stars"></label>
+                                <input type="radio" th:id="'event-' + ${rating.userSource.id} + 'star1'" th:name="'rating-' + ${rating.userSource.id}" value="2" disabled th:checked="${rating.rating == 2}">
+                                <label class="full" th:for="'event-' + ${rating.userSource.id} + 'star1'" title="1 star"></label>
+                                <input type="radio" th:id="'event-' + ${rating.userSource.id} + 'starhalf'" th:name="'rating-' + ${rating.userSource.id}" value="1" disabled th:checked="${rating.rating == 1}">
+                                <label class="half" th:for="'event-' + ${rating.userSource.id} + 'starhalf'" title=" 0.5 stars"></label>
+                            </div>
+                            <p class="mb-0 mt-3" th:text="${rating.description}"></p>
                         </div>
                     </div>
-
-                    <!-- Create new trip: show if it's his profile -->
+                </div>
+            </div>
+            <div class="bg-white border px-4 pt-3 pb-4" style="flex-grow: 1; flex-basis: 500px;">
+                <div class="d-flex justify-content-between mb-4">
+                    <h3 class="text-center fw-bold mb-0">Events</h3>
+                    <!-- Create new event: show if it's his profile -->
                     <th:block th:if="${isOwner}">
-                        <a id="add-event" th:href="@{/formAddEvent}" href="/formAddEvent" class="m-auto btn btn-primary d-flex align-items-center" style="border-radius: 10px;">
-                            <i class="material-icons">add_circle </i> Add Event
+                        <a id="add-event" th:href="@{/formAddEvent}" href="/formAddEvent" class="btn btn-primary d-flex align-items-center" style="border-radius: 10px;">
+                            Add Event
                         </a>
                         <!-- Show a model -->
                     </th:block>
                 </div>
-            </div>
-
-            <div class="col d-flex flex-column gap-3">
-                <!-- User information -->
-                <div class="px-4 pt-3 pb-4" style="background-color: #f8f9fa;">
-                    <p class="lead fw-bold mb-1 text-center">About</p>
-                    <p class="font-italic mb-1  b" style="font-weight: bold;">FirstName : <span th:text="${user.firstName}" style="font-weight: normal;"></span></p>
-                    <p class="font-italic mb-1 b" style="font-weight: bold;">LastName :  <span th:text="${user.lastName}" style="font-weight: normal;"></span></p>
-                    <p class="font-italic mb-0 b" style="font-weight: bold;">Location : <span th:text="${user.location}" style="font-weight: normal;"></span></p>
-                    <p class="font-italic mb-0 b" style="font-weight: bold;">Languages : <span th:text="${user.languages}" style="font-weight: normal;"></span></p>
-                    <p class="font-italic mb-0 b" style="font-weight: bold;">Sex :</p>
-                    <p class="font-italic mb-0 b" style="font-weight: bold;">Age : <span th:text="${age}" style="font-weight: normal;"></span></p>
-                    <p class="font-italic mb-0 b" style="font-weight: bold;">Email : <span th:text="${user.email}" style="font-weight: normal;"></span></p>
-                    <p class="font-italic mb-0 b">Evaluation</p>
+                <div class="search-filters d-flex gap-2 mb-3 flex-wrap">
+                    <a th:class="'btn btn-sm rounded-pill' + ${filter.equalsIgnoreCase('none')? ' btn-primary': ' btn-outline-primary'}"
+                      href="" th:href="@{/user/{id}(id=${user.id})}">All Events</a>
+                    <a th:class="'btn btn-sm rounded-pill' + ${filter.equalsIgnoreCase('my')? ' btn-primary': ' btn-outline-primary'}"
+                      href="" th:href="@{/user/{id}(id=${user.id},filter=my)}">My Events</a>
+                      <a th:class="'btn btn-sm rounded-pill' + ${filter.equalsIgnoreCase('fav')? ' btn-primary': ' btn-outline-primary'}"
+                      href="" th:href="@{/user/{id}(id=${user.id},filter=fav)}">Favorite Events</a>
+                    <a th:class="'btn btn-sm rounded-pill' + ${filter.equalsIgnoreCase('finished')? ' btn-primary': ' btn-outline-primary'}"
+                      href="" th:href="@{/user/{id}(id=${user.id},filter=finished)}">Finished Events</a>
+                    <a th:class="'btn btn-sm rounded-pill' + ${filter.equalsIgnoreCase('closed')? ' btn-primary': ' btn-outline-primary'}"
+                      href="" th:href="@{/user/{id}(id=${user.id},filter=closed)}">Closed Events</a>
+                    <a th:class="'btn btn-sm rounded-pill' + ${filter.equalsIgnoreCase('open')? ' btn-primary': ' btn-outline-primary'}"
+                      href="" th:href="@{/user/{id}(id=${user.id},filter=open)}">Open Events</a>
                 </div>
-
-                <!-- User description -->
-                <div class="px-4 pt-3 pb-4" style="background-color: #f8f9fa;">
-                    <p class="lead fw-bold mb-1">Description</p>
-                    <p class="font-italic mb-1" th:text="${user.description}">Little description of the user.</p>
-                </div>
-
-                 <!-- Events finished -->
-                 <div class="d-flex px-4 pt-3 pb-4 gap-3 flex-column" style="background-color: #f8f9fa;">
-                    <p class="lead fw-bold mb-1 text-center">Finish Events</p>
-                    <div class="event d-flex rounded overflow-hidden" th:each="event:${allEventsJoinedClosed}">
+                <p class="fw-bold text-muted">Showing: <span th:text="${currentPage * size + (showedElems > 1? 1: 0)}">1</span> -
+                    <span th:text="${currentPage * size + showedElems}">10</span> of <span th:text="${numPages * size}">30</span> (aprox.) events.</p>
+                <div class="events d-flex flex-column gap-3">
+                    <div class="event d-flex rounded overflow-hidden" th:each="event:${events}">
                         <div class="d-flex bg-white w-100 justify-content-between" >
                             <div class="p-2">
-                                <a th:text="${event.title}" th:href="@{/event/{id}(id=${event.id})}" class="card-btn btn btn-primary mb-1" style="border-radius: 10px;">Title</a>                                        <p class="small mb-1"><i class="far fa-star fa-lg"></i>
-                                <span th:text="${event.status}" class="badge me-2" style="border-radius: 10px; background-color: rgb(91, 189, 221);">Status</span>
-                                <span th:text="${event.type}" class="badge me-2" style="border-radius: 10px; background-color: rgb(91, 189, 221);">Type</span>
-                                <p class="small mb-0 mt-2"><i class="far fa-star fa-lg"></i>Trip by:
-                                    <a class="text-decoration-none text-body" th:href="@{/user/{id}(id=${event.userOwner.id})}">
-                                        <strong><span th:text="${event.userOwner.username}">Pepe</span></strong>
-                                    </a>
-                                </p>
-                                <p class="small mb-0"><i class="far fa-star fa-lg"></i><a th:text="${event.initDate}">Date</a></p>
-                            </div>
-                            <img th:src="@{/event/{id}/coverPic(id=${event.id})}" width="200" height="150" alt="image 1" style="object-fit: cover;">
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-
-            <div class="col">
-                <!-- Events Joined -->
-                <div class="d-flex px-4 pt-3 pb-4 gap-3 flex-column" style="background-color: #f8f9fa;">
-                    <p class="lead fw-bold mb-1 text-center">Events Joined</p>
-                    <div class="event d-flex rounded overflow-hidden" th:each="event:${allEventsJoined}">
-                        <div class="d-flex bg-white w-100 justify-content-between" >
-                            <div class="p-2">
-                                <a th:text="${event.title}" th:href="@{/event/{id}(id=${event.id})}" class="card-btn btn btn-primary mb-1" style="border-radius: 10px;">Title</a>                                        <p class="small mb-1"><i class="far fa-star fa-lg"></i>
-                                <span th:text="${event.status}" class="badge me-2" style="border-radius: 10px; background-color: rgb(91, 189, 221);">Status</span>
+                                <h4 class="mb-0 fw-bold"><a th:text="${event.title}" th:href="@{/event/{id}(id=${event.id})}" class="text-decoration-none">Title</a></h4>
+                                <span th:text="${event.status}" class="badge me-1" style="border-radius: 10px; background-color: rgb(91, 189, 221);">Status</span>
                                 <span th:text="${event.type}" class="badge me-2" style="border-radius: 10px; background-color: rgb(91, 189, 221);">Type</span>
                                 <p class="small mb-0 mt-2"><i class="far fa-star fa-lg"></i>Trip by:
                                     <a class="text-decoration-none text-body" th:href="@{/user/{id}(id=${event.userOwner.id})}">
@@ -125,15 +183,27 @@
                                 <p class="small mb-0"><i class="far fa-star fa-lg"></i><a th:text="${event.initDate}">Date</a></p>
                             </div>
                             <img th:src="@{/event/{id}/coverPic(id=${event.id})}" width="200" height="150"
-                                                 alt="image 1" style="object-fit: cover;">
+                                                    alt="image 1" style="object-fit: cover;">
                         </div>
+                    </div>
+                </div>
+                <div class="pagination-panel mt-4 d-flex justify-content-center">
+                    <nav>
+                      <ul class="pagination">
+                        <li th:class="'page-item' + ${currentPage==0?' disabled':''}"><a class="page-link" th:href="@{''(filter=${filter},page=${currentPage - 1})}">Previous</a></li>
+                        <li th:each="page,status:${numPagesArray}" th:class="'page-item' + ${status.index==currentPage?' active':''}">
+                          <a class="page-link" th:href="@{''(filter=${filter}, page=${status.index})}" th:text="${status.index + 1}">2</a>
+                        </li>
+                        <li th:class="'page-item' + ${currentPage>=(numPages -1)?' disabled':''}"><a class="page-link" th:href="@{''(filter=${filter},page=${currentPage + 1})}">Next</a></li>
+                      </ul>
+                    </nav>
                 </div>
             </div>
         </div>
     </main>
     <th:block th:if="${isOwner}">
-        <div id="pic-form-cont" style="display: none">
-            <form class="pic-form bg-white rounded" th:action="@{/user/{id}/pic(id=${user.id})}" method="post"
+        <div id="pic-form-cont" class="modal-form-cont">
+            <form class="modal-form bg-white rounded" th:action="@{/user/{id}/pic(id=${user.id})}" method="post"
                 enctype="multipart/form-data">
                 <h3>Upload an image.</h3>
                 <label for="report-desc" class="form-label">Upload an image:</label>
@@ -142,7 +212,7 @@
                 <button type="submit" class="btn btn-primary">
                     Send
                 </button>
-                <button type="button" class="btn btn-primary" onclick="togglePicForm()">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="toggleModalForm('pic-form-cont')">Cancel</button>
             </form>
         </div>
     </th:block>

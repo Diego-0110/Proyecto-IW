@@ -37,27 +37,8 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@NamedQueries({
-        @NamedQuery(name="User.byUsername",
-                query="SELECT u FROM User u "
-                        + "WHERE u.username = :username AND u.enabled = TRUE"),
-        @NamedQuery(name="User.hasUsername",
-                query="SELECT COUNT(u) "
-                        + "FROM User u "
-                        + "WHERE u.username = :username"),
-        @NamedQuery(name="User.allUsers",
-                query="SELECT u FROM User u "
-                        + "WHERE u.status != 'null'"),
-        @NamedQuery(name="User.blackList",
-                query="SELECT u FROM User u "
-                        + "WHERE u.status = 'BLACK_LISTED'"),
-        @NamedQuery(name="User.disabledUsers",
-                query="SELECT u FROM User u "
-                        + "WHERE u.enabled = FALSE")
-        
-})
 @Table(name="IWUser")
-public class User implements Transferable<User.Transfer> {
+public class User {
 
     public enum Role {
         USER,			// normal users 
@@ -71,7 +52,7 @@ public class User implements Transferable<User.Transfer> {
     }
     public enum Status {
         ACTIVE,
-        //SUSPENDED,
+        SUSPENDED,
         BLACK_LISTED
     }
 
@@ -95,7 +76,6 @@ public class User implements Transferable<User.Transfer> {
     
     @Column(columnDefinition = "TEXT")
     private String description;
-    private Float rating;
     private String  languages;// split by ',' to separate languages
  
     @Enumerated(EnumType.STRING)
@@ -107,33 +87,11 @@ public class User implements Transferable<User.Transfer> {
     @Column(unique = true)
     private String email;
 
-    private int numReports;
-
-     /*
-    //Eventos en los que ha participado antes(estan en estado finish)
-    @OneToMany
-    @JoinColumn(name = "old_events")
-    private List<Event> OldEvents = new ArrayList<>();
-
-    //Eventos que el user les tiene en favoritos
-    @OneToMany
-    @JoinColumn(name = "fav_events")
-    private List<Event> favEvents = new ArrayList<>();
-    */
-
 
     @OneToMany(mappedBy = "event")
     private List<UserEvent> userEvent = new ArrayList<>();
 
-    private boolean enabled;
-    private String roles; // split by ',' to separate roles User or Admin
-
-	@OneToMany
-	@JoinColumn(name = "sender_id")
-	private List<Message> sent = new ArrayList<>();
-	@OneToMany
-	@JoinColumn(name = "receiver_id")	
-	private List<Message> received = new ArrayList<>();		
+    private String roles; // split by ',' to separate roles User or Admin	
 
     /**
      * Checks whether this user has a given role.
@@ -149,30 +107,11 @@ public class User implements Transferable<User.Transfer> {
         LocalDate now = LocalDate.now();
         return Period.between(birthdate, now).getYears();
     }
- 
-
-    @Getter
-    @AllArgsConstructor
-    public static class Transfer {
-		private long id;
-        private String username;
-		private int totalReceived;
-		private int totalSent;
-    }
-
-	@Override
-    public Transfer toTransfer() {
-		return new Transfer(id,	username, received.size(), sent.size());
-	}
 	
 	@Override
 	public String toString() {
 		// return toTransfer().toString();
         return "user-" + id + "-" + username;
 	}
-
-    public boolean getEnabled(){
-        return this.enabled;
-    }
 }
 

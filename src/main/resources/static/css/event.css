@@ -1,3 +1,5 @@
+@import url(//netdna.bootstrapcdn.com/font-awesome/3.2.1/css/font-awesome.css);
+
 #images-header{
     max-height: 200px;
 }
@@ -35,6 +37,7 @@
     width: 200px;
     height: 150px;
 }
+
 
 
 #report-form-cont {

@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
@@ -19,6 +20,8 @@ import javax.persistence.OneToMany;
 import javax.persistence.OneToOne;
 import javax.persistence.SequenceGenerator;
 
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 import org.springframework.format.annotation.DateTimeFormat;
 
 import lombok.AllArgsConstructor;
@@ -29,74 +32,89 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@NamedQueries({
-    @NamedQuery(name = "Event.byTitle", query = "SELECT e FROM Event e "
-        + "WHERE LOWER(e.title) LIKE LOWER(:x) AND e.initDate >= :y AND e.finishDate <= :z")
-// ,
-// @NamedQuery(name = "Event.byUser", query = "SELECT e FROM Event e " +
-// "JOIN e.userEvents ue " +
-// "WHERE ue.id.user = :x AND e.status = :y")
-})
-public class Event {
+public class Event implements Transferable<Event.Transfer>{
 
-  public enum Status {
-    OPEN,
-    CLOSED,
-    FINISH
-  }
+    public enum Status {
+        OPEN,
+        CLOSED,
+        FINISH
+    }
 
-  public enum Type {
-    TRIP,
-    EVENT,
-    CONCERT,
-    CAMPING,
-    MUSEUM
-  }
+    public enum Type {
+        TRIP,
+        EVENT,
+        CONCERT,
+        CAMPING,
+        MUSEUM
+    }
 
-  @Id
-  // @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "genEvent")
-  // @SequenceGenerator(name = "genEvent", sequenceName = "genEvent", initialValue
-  // = 11)
-  @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "genevent")
-  @SequenceGenerator(name = "genevent", sequenceName = "genevent")
-  private long id;
-  private String title;
-  @DateTimeFormat(pattern = "yyyy-MM-dd")
-  private LocalDate initDate;
-  @DateTimeFormat(pattern = "yyyy-MM-dd")
-  private LocalDate finishDate;
-  private String destination;
-  private String reunionPoint;
+    @Id
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "genevent")
+    @SequenceGenerator(name = "genevent", sequenceName = "genevent", allocationSize = 1)
+    private long id;
+    private String title;
+    @DateTimeFormat(pattern = "yyyy-MM-dd")
+    private LocalDate initDate;
+    @DateTimeFormat(pattern = "yyyy-MM-dd")
+    private LocalDate finishDate;
+    private String destination;
+    private String reunionPoint;
 
-  @Column(columnDefinition = "TEXT")
-  private String description;
-  private int price;
-  private int capacity;
-  private int occupied;
-  private String transport; // split by ',' to separate notes
-  // PLANE, BUS, CAR, SHIP, ...
-  private String notes; // split by ',' to separate notes
-  // NO_KIDS, NO_ANIMALS, ...
+    @Column(columnDefinition = "TEXT")
+    private String description;
+    private int price;
+    private int capacity; // num of joined user -> UserEvent
+    private String transport; // split by ',' to separate notes
+    // PLANE, BUS, CAR, SHIP, ...
+    private String notes; // split by ',' to separate notes
+    // NO_KIDS, NO_ANIMALS, ...
 
-  @Enumerated(EnumType.STRING)
-  private Type type;
-  @Enumerated(EnumType.STRING)
-  private Status status;
+    @Enumerated(EnumType.STRING)
+    private Type type;
+    @Enumerated(EnumType.STRING)
+    private Status status;
 
-  @ManyToOne
-  @JoinColumn(name = "user_owner_id", referencedColumnName = "id")
-  private User userOwner;
+    @ManyToOne
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    @JoinColumn(name = "user_owner_id", referencedColumnName = "id")
+    private User userOwner;
 
-  // //Lista de los participantes del viaje
-  // @OneToMany
-  // @JoinColumn(name = "EventParts")
-  // private List<User> participants = new ArrayList<>();
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+	public static class Transfer {
+        private long id;
+        private String title;
+        private String initDate;
+        private String finishDate;
+        private String destination;
+        private String reunionPoint;
+        private String description;
+        private int price;
+        private int capacity;
+        private String transport;
+        private String notes;
+        private String type;
+        private String status;
+        public Transfer(Event e) {
+            this.id = e.getId();
+            this.title = e.getTitle();
+            this.initDate = e.getInitDate().toString();
+            this.finishDate = e.getFinishDate().toString();
+            this.destination = e.getDestination();
+            this.reunionPoint = e.getReunionPoint();
+            this.description = e.getDescription();
+            this.price = e.getPrice();
+            this.capacity = e.getCapacity();
+            this.transport = e.getTransport();
+            this.notes = e.getNotes();
+            this.type = e.getType().toString();
+            this.status = e.getStatus().toString();
+        }
+    }
 
-  // @OneToMany
-  // @JoinColumn(name = "rolsParts")
-  // private List<Rols> rolsParticipants = new ArrayList<>();
-
-  // @OneToMany(mappedBy = "user")
-  // private List<UserEvent> userEvent = new ArrayList<>();
-
+    @Override
+	public Transfer toTransfer() {
+		return new Transfer(this);
+    }
 }

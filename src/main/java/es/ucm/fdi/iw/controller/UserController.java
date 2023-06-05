@@ -2,10 +2,12 @@ package es.ucm.fdi.iw.controller;
 
 import es.ucm.fdi.iw.LocalData;
 import es.ucm.fdi.iw.Repositories.EventRepository;
+import es.ucm.fdi.iw.Repositories.RatingUserRepository;
 import es.ucm.fdi.iw.Repositories.ReportRepository;
 import es.ucm.fdi.iw.Repositories.UserRepository;
 import es.ucm.fdi.iw.model.Event;
 import es.ucm.fdi.iw.model.Message;
+import es.ucm.fdi.iw.model.RatingUser;
 import es.ucm.fdi.iw.model.Report;
 import es.ucm.fdi.iw.model.Transferable;
 import es.ucm.fdi.iw.model.User;
@@ -15,6 +17,7 @@ import es.ucm.fdi.iw.model.User.Level;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.tomcat.util.json.JSONParser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -38,18 +41,24 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 import javax.persistence.EntityManager;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import javax.transaction.Transactional;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.util.JSONPObject;
 
 import java.io.*;
 import java.security.SecureRandom;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.Period;
 import java.time.Year;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -86,6 +95,9 @@ public class UserController {
 
 	@Autowired
 	private EventRepository eventRepository;
+
+	@Autowired
+	private RatingUserRepository ratingUserRepository;
 
 	@Autowired
 	private UserRepository userRepository;
@@ -132,57 +144,71 @@ public class UserController {
 	 */
 	@GetMapping("{id}")
 	public String index(@PathVariable long id, Model model, HttpSession session,
-			@RequestParam(name = "page", defaultValue = "0") int page,
-			@RequestParam(name = "size", defaultValue = "4") int size,
-			@RequestParam(name = "search", defaultValue = "") String search,
-			@RequestParam(name = "init", defaultValue = "") String init,
-			@RequestParam(name = "fin", defaultValue = "") String fin) {
+		@RequestParam(name = "filter", defaultValue = "none") String filter,
+		@RequestParam(name = "page", defaultValue = "0") int page,
+		@RequestParam(name = "size", defaultValue = "10") int size) {
 		User target = entityManager.find(User.class, id);
 		User u = (User) session.getAttribute("u");
 
-		if (u != null && u.getEnabled() == false) {
+		// TODO check use
+		if (u != null && u.getStatus().equals(User.Status.SUSPENDED)) {
 			return "redirect:/error";
 		}
-
-		ArrayList<Event> evs = eventRepository.getUserEvents(target.getId());
-
-		ArrayList<Event> evJoined = eventRepository.getEventsJoined(target.getId());
-
-		ArrayList<Event> evJoinedFinish = eventRepository.getEventsJoinedByStatus(target.getId(), Event.Status.FINISH.toString());
+		Page<Event> events;
+		if (filter.equalsIgnoreCase("my")) {
+			events = eventRepository.getUserEvents(id, PageRequest.of(page, size));
+		}
+		else if (filter.equalsIgnoreCase("finished")){
+			events = eventRepository.getEventsJoinedByStatus(id, Event.Status.FINISH.toString(),
+				PageRequest.of(page, size));
+		}
+		else if (filter.equalsIgnoreCase("open")){
+			events = eventRepository.getEventsJoinedByStatus(id, Event.Status.OPEN.toString(),
+				PageRequest.of(page, size));
+		}
+		else if (filter.equalsIgnoreCase("closed")) {
+			events = eventRepository.getEventsJoinedByStatus(id, Event.Status.CLOSED.toString(),
+				PageRequest.of(page, size));
+		}
+		else if (filter.equalsIgnoreCase("fav")){
+			events = eventRepository.getFavEvents(id, PageRequest.of(page, size));
+		}
+		else {
+			events = eventRepository.getEventsJoined(id, PageRequest.of(page, size));
+		}
 
 		ArrayList<Report> userReports = reportRepository.findReportsByUserId(target.getId());
-	
 		int numReports = 0;
 		if (!userReports.isEmpty()) {
 			numReports = userReports.size();
 		}
 
-		Page<Event> pageEvents = pageImplement(evs);
-		Page<Event> pageEventsOpen = pageImplement(evJoined);
-		Page<Event> pageEventsFinished = pageImplement(evJoinedFinish);
-
-		model.addAttribute("allMyEvents", pageEvents.getContent());
-		model.addAttribute("allEventsJoined", pageEventsOpen.getContent());
-		model.addAttribute("allEventsJoinedClosed", pageEventsFinished.getContent());
-
-		// Page Event Finish
-		model.addAttribute("numpages", new int[pageEventsOpen.getTotalPages()]);
-		model.addAttribute("numResults", pageEventsOpen.getTotalPages() * size);
-		model.addAttribute("numFirstRes", (page * size) + 1);
-		model.addAttribute("size", size);
-		model.addAttribute("currentPage", page);
-		model.addAttribute("numPages", pageEventsOpen.getTotalPages());
-		model.addAttribute("search", search);
-		model.addAttribute("init", init);
-		model.addAttribute("fin", fin);
-
-		model.addAttribute("user", target);
-		model.addAttribute("idRequest", target.getId());
-		model.addAttribute("idUser", u != null ? u.getId() : -1);
+		model.addAttribute("isLogged", u != null);
 		model.addAttribute("isOwner", u != null && (target.getId() == u.getId()));
+		
+		paginationModelAttrs(model, "events", events, page, size, filter);
+		
+		model.addAttribute("user", target);
+		model.addAttribute("age", target.getAge());
 		model.addAttribute("numReports", numReports);
+		int numOwnerRatings = ratingUserRepository.getNumRatings(id);
+        model.addAttribute("numOwnerRatings", numOwnerRatings);
+        float avgOwnerRating = ratingUserRepository.getAverageRating(id);
+        model.addAttribute("avgOwnerRating", (int) Math.ceil(avgOwnerRating));
+		ArrayList<RatingUser> ownerRatings = ratingUserRepository.getRatings(id);
+		model.addAttribute("ownerRatings", ownerRatings);
 		return "user";
 	}
+
+	private void paginationModelAttrs(Model model, String name, Page<?> objectPage, int page, int size, String filter){
+        model.addAttribute(name, objectPage.getContent());
+        model.addAttribute("size", size);
+        model.addAttribute("showedElems", objectPage.getContent().size());
+        model.addAttribute("currentPage", page);
+        model.addAttribute("numPages", objectPage.getTotalPages());
+        model.addAttribute("numPagesArray", new int[objectPage.getTotalPages()]);
+        model.addAttribute("filter", filter);
+    }
 
 	public Page<Event> pageImplement(ArrayList<Event> ev) {
 		int total = ev.size();
@@ -195,59 +221,6 @@ public class UserController {
 		PageRequest pageRequest = PageRequest.of(page, size);
 		pageEvents = new PageImpl<>(pageList, pageRequest, total);
 		return pageEvents;
-	}
-
-	/**
-	 * Alter or create a user
-	 */
-	@PostMapping("/{id}")
-	@Transactional
-	public String postUser(
-			HttpServletResponse response,
-			@PathVariable long id,
-			@ModelAttribute User edited,
-			@RequestParam(required = false) String pass2,
-			Model model, HttpSession session) throws IOException {
-
-		User requester = (User) session.getAttribute("u");
-		User target = null;
-		if (id == -1 && requester.hasRole(Role.ADMIN)) {
-			// create new user with random password
-			target = new User();
-			target.setPassword(encodePassword(generateRandomBase64Token(12)));
-			target.setEnabled(true);
-			entityManager.persist(target);
-			entityManager.flush(); // forces DB to add user & assign valid id
-			id = target.getId(); // retrieve assigned id from DB
-		}
-
-		// retrieve requested user
-		target = entityManager.find(User.class, id);
-		model.addAttribute("user", target);
-
-		if (requester.getId() != target.getId() &&
-				!requester.hasRole(Role.ADMIN)) {
-			throw new NoEsTuPerfilException();
-		}
-
-		if (edited.getPassword() != null) {
-			if (!edited.getPassword().equals(pass2)) {
-				// FIXME: complain
-			} else {
-				// save encoded version of password
-				target.setPassword(encodePassword(edited.getPassword()));
-			}
-		}
-		target.setUsername(edited.getUsername());
-		target.setFirstName(edited.getFirstName());
-		target.setLastName(edited.getLastName());
-
-		// update user session so that changes are persisted in the session, too
-		if (requester.getId() == target.getId()) {
-			session.setAttribute("u", target);
-		}
-
-		return "user";
 	}
 
 	/**
@@ -313,159 +286,57 @@ public class UserController {
 		return "redirect:/user/" + id;
 	}
 
-	/**
-	 * Returns JSON with all received messages
-	 * TODO Remove or change
-	 */
-	@GetMapping(path = "received", produces = "application/json")
-	@Transactional // para no recibir resultados inconsistentes
-	@ResponseBody // para indicar que no devuelve vista, sino un objeto (jsonizado)
-	public List<Message.Transfer> retrieveMessages(HttpSession session) {
-		long userId = ((User) session.getAttribute("u")).getId();
-		User u = entityManager.find(User.class, userId);
-		log.info("Generating message list for user {} ({} messages)",
-				u.getUsername(), u.getReceived().size());
-		return u.getReceived().stream().map(Transferable::toTransfer).collect(Collectors.toList());
-	}
-
-	/**
-	 * Returns JSON with count of unread messages
-	 * TODO remove or change
-	 */
-	@GetMapping(path = "unread", produces = "application/json")
-	@ResponseBody
-	public String checkUnread(HttpSession session) {
-		long userId = ((User) session.getAttribute("u")).getId();
-		long unread = entityManager.createNamedQuery("Message.countUnread", Long.class)
-				.setParameter("userId", userId)
-				.getSingleResult();
-		session.setAttribute("unread", unread);
-		return "{\"unread\": " + unread + "}";
-	}
-
-	/**
-	 * Posts a message to a user.
-	 * 
-	 * @param id of target user (source user is from ID)
-	 * @param o  JSON-ized message, similar to {"message": "text goes here"}
-	 * @throws JsonProcessingException
-	 */
-	// TODO Remove or change
-	@PostMapping("/{id}/msg")
-	@ResponseBody
-	@Transactional
-	public String postMsg(@PathVariable long id,
-			@RequestBody JsonNode o, Model model, HttpSession session)
-			throws JsonProcessingException {
-
-		String text = o.get("message").asText();
-		User u = entityManager.find(User.class, id);
-		User sender = entityManager.find(
-				User.class, ((User) session.getAttribute("u")).getId());
-		model.addAttribute("user", u);
-
-		// construye mensaje, lo guarda en BD
-		Message m = new Message();
-		// m.setReceiver(u);
-		m.setSender(sender);
-		m.setDateSent(LocalDateTime.now());
-		m.setText(text);
-		entityManager.persist(m);
-		entityManager.flush(); // to get Id before commit
-
-		ObjectMapper mapper = new ObjectMapper();
-		/*
-		 * // construye json: método manual
-		 * ObjectNode rootNode = mapper.createObjectNode();
-		 * rootNode.put("from", sender.getUsername());
-		 * rootNode.put("to", u.getUsername());
-		 * rootNode.put("text", text);
-		 * rootNode.put("id", m.getId());
-		 * String json = mapper.writeValueAsString(rootNode);
-		 */
-		// persiste objeto a json usando Jackson
-		String json = mapper.writeValueAsString(m.toTransfer());
-
-		log.info("Sending a message to {} with contents '{}'", id, json);
-
-		messagingTemplate.convertAndSend("/user/" + u.getUsername() + "/queue/updates", json);
-		return "{\"result\": \"message sent.\"}";
-	}
-
 	@PostMapping("{id}/report")
 	@ResponseBody
 	@Transactional
-	public String updateUserEvent(@PathVariable long id, Model model, HttpSession session,
-			@RequestBody Report report) {
+	public String reportUser(@PathVariable long id, Model model, HttpSession session,
+			@RequestBody Report.Transfer reportT) throws JsonMappingException, JsonProcessingException {
+		Report report = new Report();
 		User userSource = (User) session.getAttribute("u");
 		User userTarget = entityManager.find(User.class, id);
-		if (userSource == null || userTarget == null) {
+		Event event = entityManager.find(Event.class, reportT.getEvent());
+		if (userSource == null || userTarget == null 
+			|| userSource.getId() == userTarget.getId()) {
+			// Users should exists and can't be the same.
 			throw new IllegalArgumentException();
 		}
 		report.setUserSource(userSource);
 		report.setUserTarget(userTarget);
+		report.setDescription(reportT.getDescription());
+		report.setCause(Report.Cause.valueOf(reportT.getCause()));
+		report.setEvent(event);
+		report.setDateSent(LocalDateTime.now());
 		reportRepository.save(report);
-
-		userTarget.setNumReports(userTarget.getNumReports() + 1);
 
 		return "ok";
 	}
 
-	// ADD User to the dataBase when you fill the form
-	// Falta redirigirlo a la pagina errorSignUp si hay error
+	// Register a new user.
 	@Transactional
-	@PostMapping("/saveUser")
-	public String saveUser(@ModelAttribute User user, Model model, HttpSession session) {
-		User u = (User) session.getAttribute("u");	
-
-		
-
-		User InsertUser = new User();
-		InsertUser.setFirstName(user.getFirstName());
-		InsertUser.setLastName(user.getLastName());
-		InsertUser.setPassword(encodePassword(user.getPassword()));
-		InsertUser.setUsername(user.getUsername());
-		InsertUser.setLocation(user.getLocation());
-		InsertUser.setDescription(user.getDescription());
-		InsertUser.setLanguages(user.getLanguages());
-		InsertUser.setEmail(user.getEmail());
-		InsertUser.setBirthdate(user.getBirthdate());
-		InsertUser.setRating(0F);
-		InsertUser.setStatus(Status.ACTIVE);
-		InsertUser.setRoles(Role.USER.name());
-		InsertUser.setEnabled(true);
-		InsertUser.setUserEvent(null);
-		InsertUser.setSent(null);
-		InsertUser.setLevel(Level.BRONZE);
-		InsertUser.setReceived(null);
-		InsertUser.setNumReports(0);
-		entityManager.persist(InsertUser);
-		entityManager.flush();
-		model.addAttribute("User", InsertUser);
-
-		if(u.hasRole(Role.ADMIN)){
-			return "redirect:/admin/";	
+	@PostMapping("/register")
+	public String register(@ModelAttribute User user, Model model, HttpSession session) {
+		if (userRepository.hasUsername(user.getUsername()) > 0 || userRepository.hasEmail(user.getEmail()) > 0){
+			return "redirect:/signUp";
 		}
-		
-		return "redirect:/";
+		user.setPassword(encodePassword(user.getPassword()));
+		user.setStatus(Status.ACTIVE);
+		user.setRoles(Role.USER.name());
+		user.setLevel(Level.NONE);
+		user = userRepository.saveAndFlush(user);
+		return "redirect:/user/" + user.getId();
 
 	}
 
-	// add or erase user from blacklist
 	@Transactional
-	@GetMapping("{id}/blacklistUser")
-	public String blacklistUser(@PathVariable long id, Model model, HttpSession session){
+	@PostMapping("{id}/changeStatus/{status}")
+	public String changeStatus(@PathVariable long id, @PathVariable User.Status status,
+		Model model, HttpSession session){
 		User user = entityManager.find(User.class, id);
 		User u = (User) session.getAttribute("u");	
-
-		if (user != null && u != null && u.hasRole(Role.ADMIN)) {
-			if (user.getStatus().equals(Status.BLACK_LISTED))
-				user.setStatus(Status.ACTIVE);
-			else
-				user.setStatus(Status.BLACK_LISTED);
-
+		if (user != null && status != null && u != null && u.hasRole(Role.ADMIN)) {
+			user.setStatus(status);
 			userRepository.save(user);
-			return "redirect:/admin/blackListUser";
+			return "redirect:/admin/";
 		}
 		return "redirect:/";
 	}
@@ -477,31 +348,9 @@ public class UserController {
 		User user = entityManager.find(User.class, id);
 
 		if (user != null && u != null && u.hasRole(Role.ADMIN)) {
-			if(user.getEnabled())
-				user.setEnabled(false);
-			else 
-				user.setEnabled(true);
-
-			userRepository.save(user);
-			return "redirect:/admin/allUsers";
+			userRepository.delete(user);
+			return "redirect:/admin/";
 		}
 		return "redirect:/";
-	}
-
-	@PostMapping("{id}/deleteReport")
-	@Transactional
-	public String deleteReport(@PathVariable long id, Model model, HttpSession session) {
-		User u = (User) session.getAttribute("u");
-		Report report = entityManager.find(Report.class, id);
-		if (u.hasRole(Role.ADMIN) &&report != null) {
-			// User user = entityManager.find(User.class, report.userTarget.getId());
-			// if(user!=null){
-			// 	user.setNumReports(user.getNumReports() - 1);
-			// }
-			//report.
-			// TODO Eliminar report
-		}
-		
-		return "redirect:/admin/allReports";
 	}
 }

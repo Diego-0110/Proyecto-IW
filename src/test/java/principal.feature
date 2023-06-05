@@ -15,5 +15,6 @@ Feature: user can join an event and send a message
     When click("#acts-aft-join > a:first-child")
     Then waitForUrl(baseUrl + '/chat')
     And click("#chat-b-1")
-    And input('#input-msg-1', 'Hello , i would like to join you to the trip please')
-    And click("#input-msg-1 + button")
+    And input('#input-msg-1', 'Hello, I would like to join you to the trip please')
+    When click("#input-msg-1 + button")
+    Then delay(1000)

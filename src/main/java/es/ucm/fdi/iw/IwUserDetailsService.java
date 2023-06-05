@@ -7,11 +7,13 @@ import javax.persistence.PersistenceContext;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
+import es.ucm.fdi.iw.Repositories.UserRepository;
 import es.ucm.fdi.iw.model.User;
 
 /**
@@ -23,6 +25,9 @@ public class IwUserDetailsService implements UserDetailsService {
 
     private EntityManager entityManager;
     
+	@Autowired
+	private UserRepository userRepository;
+
     @PersistenceContext
     public void setEntityManager(EntityManager em){
         this.entityManager = em;
@@ -30,9 +35,7 @@ public class IwUserDetailsService implements UserDetailsService {
 
     public UserDetails loadUserByUsername(String username){
     	try {
-	        User u = entityManager.createNamedQuery("User.byUsername", User.class)
-                    .setParameter("username", username)
-                    .getSingleResult();
+			User u = userRepository.byUsername(username);
 	        // build UserDetails object
 	        ArrayList<SimpleGrantedAuthority> roles = new ArrayList<>();
 	        for (String r : u.getRoles().split("[,]")) {

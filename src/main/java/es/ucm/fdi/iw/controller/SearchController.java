@@ -2,6 +2,7 @@ package es.ucm.fdi.iw.controller;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import javax.persistence.EntityManager;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import es.ucm.fdi.iw.Repositories.EventRepository;
+import es.ucm.fdi.iw.Repositories.RatingUserRepository;
 import es.ucm.fdi.iw.model.Event;
 import es.ucm.fdi.iw.model.User;
 import es.ucm.fdi.iw.model.UserEvent;
@@ -29,7 +31,10 @@ public class SearchController {
     private EntityManager entityManager;
     
     @Autowired
-    private EventRepository eventRepository; 
+    private EventRepository eventRepository;
+
+    @Autowired
+    private RatingUserRepository ratingUserRepository; 
 
 
     public  List<Integer> splitdate(String date) {
@@ -47,44 +52,36 @@ public class SearchController {
  
     @GetMapping("/search")
     public String search(Model model, HttpSession session,
-        @RequestParam(name="page",defaultValue="0")int page,
-        @RequestParam(name="size",defaultValue="3")int size,
-        @RequestParam(name="search",defaultValue = "")String search,
+        @RequestParam(name="page",defaultValue="0") int page,
+        @RequestParam(name="size",defaultValue="10") int size,
+        @RequestParam(name="search",defaultValue = "") String search,
         @RequestParam(name = "init", defaultValue = "") String init,
         @RequestParam(name = "fin", defaultValue = "") String fin) {
         Page<Event> PageEvents;
         
-        LocalDate initDate=LocalDate.of(1999,1,1);
-        LocalDate finDate=LocalDate.of(3000,1,1);
+        LocalDate initDate = LocalDate.of(1999,1,1);
+        LocalDate finDate = LocalDate.of(3000,1,1);
         if(!init.isEmpty()){
-            initDate=LocalDate.of(splitdate(init).get(0),splitdate(init).get(1),splitdate(init).get(2));
-            finDate=LocalDate.of(splitdate(fin).get(0),splitdate(fin).get(1),splitdate(fin).get(2));
+            initDate = LocalDate.of(splitdate(init).get(0),splitdate(init).get(1),splitdate(init).get(2));
+            finDate = LocalDate.of(splitdate(fin).get(0),splitdate(fin).get(1),splitdate(fin).get(2));
         }
 
         if(search.isEmpty()){
             PageEvents = eventRepository.findAll(PageRequest.of(page, size));
         }
         else {
-        
-            List<Event> ev = entityManager.createNamedQuery("Event.byTitle")
-            .setParameter("x", "%"+search+"%")
-            .setParameter("y", initDate)
-            .setParameter("z", finDate).getResultList();
-        
-            int total = ev.size();
-            int fromIndex = (page) * size;
-            int toIndex = Math.min(fromIndex + size, total);
-
-            List<Event> pageList = ev.subList(fromIndex, toIndex);
-            PageRequest pageRequest = PageRequest.of(page, size);
-            PageEvents = new PageImpl<>(pageList, pageRequest, total);
+            PageEvents = eventRepository.getEventsByTitle(search, initDate, finDate, PageRequest.of(page, size));
         }
 
         User u = (User)session.getAttribute("u");
         Boolean isLogged = u != null;
         model.addAttribute("isLogged", isLogged);
-        model.addAttribute("allEvents",PageEvents.getContent());
+        model.addAttribute("allEvents", PageEvents.getContent());
+
         List<Boolean> favPageEvents = new ArrayList<>();
+        HashMap<Long, Integer> numJoinedUsers = new HashMap<>();
+        HashMap<Long, Integer> numOwnerRatingsMap = new HashMap<>();
+        HashMap<Long, Integer> avgOwnerRatingMap = new HashMap<>();
         for (Event event : PageEvents) {
             if (isLogged) {
                 UserEventId ueId = new UserEventId();
@@ -96,8 +93,18 @@ public class SearchController {
             else {
                 favPageEvents.add(false);
             }
+            int numOccupied = eventRepository.getNumJoinedUsers(event.getId());
+            numJoinedUsers.put(event.getId(), numOccupied);
+
+            int numOwnerRatings = ratingUserRepository.getNumRatings(event.getUserOwner().getId());
+            numOwnerRatingsMap.put(event.getId(), numOwnerRatings);
+            float avgOwnerRating = ratingUserRepository.getAverageRating(event.getUserOwner().getId());
+            avgOwnerRatingMap.put(event.getId(), (int) Math.ceil(avgOwnerRating));
         }
         model.addAttribute("favPageEvents", favPageEvents);
+        model.addAttribute("numJoinedUsers", numJoinedUsers);
+        model.addAttribute("numOwnerRatings", numOwnerRatingsMap);
+        model.addAttribute("avgOwnerRating", avgOwnerRatingMap);
 
         model.addAttribute("numpages", new int[PageEvents.getTotalPages()]);
         model.addAttribute("numResults", PageEvents.getTotalPages() * size);
@@ -105,9 +112,9 @@ public class SearchController {
         model.addAttribute("size", size);
         model.addAttribute("currentPage", page);
         model.addAttribute("numPages", PageEvents.getTotalPages());
-        model.addAttribute("search",search);
-        model.addAttribute("init",init);
-        model.addAttribute("fin",fin);
+        model.addAttribute("search", search);
+        model.addAttribute("init", init);
+        model.addAttribute("fin", fin);
         return "search";
     }
 

@@ -22,4 +22,7 @@ Feature: login en servidor
     And input("#type", "CAMPING")
     When click("#add-event")
     Then delay(1000)
-    And click("#delete-event")
+    When click("#delete-event")
+    And delay(1000)
+    And dialog(true)
+    And delay(1000)

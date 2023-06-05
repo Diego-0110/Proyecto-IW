@@ -3,297 +3,258 @@
   <head>
     <th:block th:replace="fragments/head :: header" />
     <title>Administration</title>
-    <link
-      rel="stylesheet"
-      th:href="@{/css/admin.css}"
-      href="/css/admin.css"
-      type="text/css"
-    />
+    <link rel="stylesheet" th:href="@{/css/admin.css}" href="/css/admin.css" type="text/css">
+    <link rel="stylesheet" th:href="@{/css/stars-rating.css}" href="css/stars-rating.css">
     <script th:src="@{/js/admin.js}" src="js/admin.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-KK94CHFLLe+nY2dmCWGMq91rCGa5gtU4mk92HdvYe+M/SXH301p5ILy+dN9+nJOZ" crossorigin="anonymous">
   </head>
 
-  <body class="d-flex flex-column h-100" onload="changeName()">
+  <body class="d-flex flex-column h-100 bg-light" onload="changeName()">
     <header th:replace="fragments/nav.html :: nav"></header>
-
-    <main class="bg-light d-flex flex-column align-items-center">
-      <div class="container">
-        <h1 class="mt-5">Administration</h1>
-        <div mb-2>
-          <div class="d-flex gap-2 mb-2 flex-wrap">
-            <a th:class="'btn' + ${allUser != null? ' btn-primary': ' btn-outline-primary'}"
-              href="" th:href="@{/admin/allUsers}">All Users</a>
-            <a th:class="'btn' + ${allEvents != null? ' btn-primary': ' btn-outline-primary'}"
-              href="" th:href="@{/admin/allEvents}">Events</a>
-            <a th:class="'btn' + ${blackListUser != null? ' btn-primary': ' btn-outline-primary'}"
-              href="" th:href="@{/admin/blackListUser}">Blacklist</a>
-            <a th:class="'btn' + ${allReports != null? ' btn-primary': ' btn-outline-primary'}"
-              href="" th:href="@{/admin/allReports}">Reports</a>
-            <a th:class="'btn' + ${disabledUsers != null? ' btn-primary': ' btn-outline-primary'}"
-              href="" th:href="@{/admin/disabledUsers}">Disabled Users</a>
-          </div>
-          <div class="searchbar">
-            <input type="text" placeholder="Search.." />
-            <button type="submit">Submit</button>
-            <!-- <a th:href="@{/adminAddItem}" href="/adminAddItem" class="btn btn-primary" role="button" data-bs-toggle="button" >Add item</a> -->
-            <a th:href="@{/signUp}" class="m-auto btn btn-primary d-flex align-items-center" style="border-radius: 10px;">
-              Add User
-            </a>
-          </div>
+    <main class="main-container d-flex flex-column align-items-center p-2">
+      <h1 class="mt-2 mb-4">Administration Panel</h1>
+      <div class="search-options w-100 mb-3">
+        <div class="search-filters d-flex gap-2 mb-2 flex-wrap">
+          <a th:class="'btn' + ${users != null? ' btn-primary': ' btn-outline-primary'}"
+            href="" th:href="@{/admin/usersList}">Users</a>
+          <a th:class="'btn' + ${events != null? ' btn-primary': ' btn-outline-primary'}"
+            href="" th:href="@{/admin/eventsList}">Events</a>
+          <a th:class="'btn' + ${reports != null? ' btn-primary': ' btn-outline-primary'}"
+            href="" th:href="@{/admin/reportsList}">Reports</a>
         </div>
-
-
-        <div id="userlist"><!-- Hay que arreglar el html aqui -->
-         
-            <div class="results d-flex flex-column gap-3" >
-          <div class="event bg-white d-flex rounded overflow-hidden" th:each="user : ${allUser}">
-            <img th:src="@{/user/{id}/pic(id=${user.id})}" alt="">
-            <div class="event-info p-4">
-              <div class="event-header d-flex gap-2 align-items-center justify-content-between">
-                <div class="d-flex gap-2 align-items-center ">
-                  <h2 class="title "><a th:text="${user.firstName} + ' ' + ${user.lastName}" th:href="@{/user/{id}(id=${user.id})}" >Nombre</a></h2>
-                </div>
-               
-              </div>
-              <div class="event-body d-flex gap-3">
-                <div class="w-75 overflow-hidden d-flex flex-column gap-2">
-                  <div class="main-info d-flex flex-wrap">
-                    <p class="m-0 "><strong>Age: </strong><span th:text="${user.age}"></span></p>
-                    <p class="m-0  " ><strong class="mr">Level: </strong><span th:text="${user.level}"></span></p>
-                    <p class="m-0 "><strong class="mr">Email: </strong><span th:text="${user.email}"></span></p>
-                    <p class="m-0 "><strong class="mr">Languages: </strong><span th:text="${user.languages}"></span></p>
-                  </div>
-                  <p class="description m-0" th:text="${user.description}">desc</p>
-                  <p class="m-0">
-                    <p class="mx-2"><strong>⚠ reportings: </strong><span th:text="${user.numReports}"></span></p>
-                </div>
-                <div style="width: 13em;"></div>
-                <div >
-                 <a type="button" class="btn btn-secondary btn-sm my-2" style="width: 7em;" th:href="@{/user/{id}/blacklistUser(id=${user.id})}">
-                    📝 Blacklist
-                 </a>
-                  <!-- <a type="button" class="btn btn-secondary btn-sm" style="width: 7em;" href="#" th:onclick='deleteForm()'> -->
-                    <form th:action="@{/user/{id}/deleteUser(id=${user.id})}" method="post">
-                      <button type="submit" class="btn btn-secondary btn-sm" style="width: 7em;">
-                          🗑️ Disable
-                      </button>
-                   </form>
-                  
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-          </div>
-          
-        
-        <div id="triplist">
-          <!-- Trips list -->
-
-          <div class="results d-flex flex-column gap-3">
-          <div class="event bg-white d-flex rounded overflow-hidden" th:each="event, iter:${allEvents}">
-            <img th:src="@{/event/{id}/coverPic(id=${event.id})}" alt="">
-            <div class="event-info p-4">
-              <div class="event-header d-flex gap-2 align-items-center justify-content-between">
-                <div class="d-flex gap-2 align-items-center">
-                  <span class="badge bg-primary" th:text="${event.type}">Event</span>
-                  <h2 class="title"><a th:text="${event.title}" th:href="@{/event/{id}(id=${event.id})}" href="/event/2" style=" text-decoration:none; color: black;">Title</a></h2>
-                </div>
-                
-              </div>
-              <div class="event-body d-flex gap-3">
-                <div class="w-75 overflow-hidden d-flex flex-column gap-2">
-                  <div class="main-info d-flex flex-wrap">
-                    <p class="m-2"><strong>Price: </strong><span th:text="${#numbers.formatDecimal(event.price,1,2)}"></span><span>/persona</span></p>
-                    <p class="m-2"><strong>Vacancies: </strong>
-                      <span class="rounded-pill overflow-hidden ms-2" style="display: inline-block;width: 40px;background-color: darkgray;">
-                        <span class="bg-primary"
-                          th:style="'display:inline-block;width:' + ${((event.occupied + 0.0)/ event.capacity)*40} + 'px'">
-                          <span>
-                            <span th:text="${event.occupied}"></span>/<span th:text="${event.capacity}"></span>
-                          </span>
-                        </span>
-                      </span>
-                    </p>
-                    <p class="m-2"><strong>Destination: </strong><span th:text="${event.destination}">destino</span></p>
-                  </div>
-                  <p class="description m-0">Lorem ipsum dolor, sit amet consectetur adipisicing elit. Soluta optio fuga esse? Voluptatum quam, soluta cumque illum asperiores, veniam placeat debitis alias, ut obcaecati enim cum exercitationem aliquid ratione eligendi.</p>
-                  <p th:if="${event.notes.length > 0}" class="m-0"><strong>Notes: </strong>
-                    <th:block th:each="note: ${event.notes.split(',')}">
-                      <th:block th:switch="${note}">
-                        <span th:case="'NO_KIDS'">👶❌ </span>
-                        <span th:case="'NO_ANIMALS'">🐾❌ </span>
-                        <span th:case="'KIDS'">👶✅ </span>
-                        <span th:case="'ANIMALS'">🐾✅ </span>
-                      </th:block>
-                    </th:block>
-                  </p>
-                  <p><strong>Number of Images: </strong><th:block th:text="${numImgsByEvent.get(event.id)}">x</th:block></p>
-                </div>
-                <div class="">
-                  <p class="m-0"><strong>📅 From: </strong><span th:text="${event.initDate}">Fecha Inicio</span></p>
-                  <p><strong>📅 To: </strong><span th:text="${event.finishDate}">Fecha Fin</span></p>
-                  <p class="m-0"><strong>Organizer: </strong><span th:text="${event.userOwner.firstName} + ' ' + ${event.userOwner.lastName}">Nombre Apellidos</span></p>
-                  <p class="m-0"><strong>Languages: </strong><span th:text="${event.userOwner.languages}">Español</span></p>
-                  <p class="mb-0"><span>⭐⭐⭐⭐⭐</span></p>
-                </div>
-                <div class=" col-1">
-                            <!-- Botones -->
-                        <div class="row">
-                          
-                          <button type="button" class="btn btn-secondary btn-sm mt-2"> 🗑️ Delete</button></div>
-                        </div>
-              </div>
-            </div>
-          </div>
-        </div>
-       
-        
-        </div>
-
-        <div id="blacklist">
-         <div class="results d-flex flex-column gap-3" >
-          <div class="event bg-white d-flex rounded overflow-hidden" th:each="user : ${blackListUser}">
-            <img th:src="@{/user/{id}/pic(id=${user.id})}" alt="">
-            <div class="event-info p-4">
-              <div class="event-header d-flex gap-2 align-items-center justify-content-between">
-                <div class="d-flex gap-2 align-items-center ">
-                  <h2 class="title "><a th:text="${user.firstName} + ' ' + ${user.lastName}" th:href="@{/user/{id}(id=${user.id})}" >Nombre</a></h2>
-                </div>
-               
-              </div>
-              <div class="event-body d-flex gap-3">
-                <div class="w-75 overflow-hidden d-flex flex-column gap-2">
-                  <div class="main-info d-flex flex-wrap">
-                    <p class="m-0 "><strong>Age: </strong><span>20</span></p>
-                    <p class="m-0  " ><strong class="mr">Level: </strong><span th:text="${user.level}"></span></p>
-                    <p class="m-0 "><strong class="mr">Email: </strong><span th:text="${user.email}"></span></p>
-                    <p class="m-0 "><strong class="mr">Languages: </strong><span th:text="${user.languages}"></span></p>
-                  </div>
-                  <p class="description m-0" th:text="${user.description}">desc</p>
-                  <p class="m-0">
-                    <p class="mx-2"><strong>⚠ reportings: </strong><span th:text="${user.numReports}"></span></p>
-                </div>
-                <div style="width: 13em;"></div>
-
-                <div >
-                 <a type="button" class="btn btn-secondary btn-sm my-2" style="width: 7em;" th:href="@{/user/{id}/blacklistUser(id=${user.id})}">
-                    📝 Remove
-                 </a>
-                 <form th:action="@{/user/{id}/deleteUser(id=${user.id})}" method="post">
-                  <button type="button" class="btn btn-secondary btn-sm" style="width: 7em;">
-                    🗑️ Disable
-                  </button>
-                  </form>
-              
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-          
-        </div>
-
-        <div id="reportlist">
-          
-          <div class="results d-flex flex-column gap-3" >
-          <div class="event bg-white d-flex rounded overflow-hidden" th:each="report : ${allReports}">
-            <div class="event-info p-4 row">
-              <div class="col-5">
-                <div class="row"><p>
-<h2 class="title ">User source :<a th:text="${report.userSource.firstName} + ' ' + ${report.userSource.lastName}" th:href="@{/user/{id}(id=${report.userSource.id})}" >Nombre</a></h2>
-                  </p></div>
-                <div class="row">
-                  <p>
-<h2 class="title ">User Target :<a th:text="${report.userTarget.firstName} + ' ' + ${report.userTarget.lastName}" th:href="@{/user/{id}(id=${report.userTarget.id})}" >Nombre</a></h2>
-                  </p>
-                </div>
-              </div>
-              <div class="col-6">
-                <div class="w-75 overflow-hidden d-flex flex-column gap-2">
-                  <div class="main-info d-flex flex-wrap">
-                    
-                  </div>
-                  <p class="description m-0" th:text="${report.description}">desc</p>
-                  <p class="m-0">
-                </div>
-              </div>
-              <div class="col-1">
-                <div class="event-body d-flex gap-3">
-                  <div>
-                  <button type="button" class="btn btn-secondary btn-sm my-2" style="width: 5em;" th:href="@{/user/{id}/blacklistUser(id=${report.userTarget.id})}">
-                      📝 Blacklist
-                    </button>
-                    <form th:action="@{/user/{id}/deleteReport(id=${report.id})}" method="post">
-                    <button type="submit" class="btn btn-secondary btn-sm" style="width: 5em;">
-                      🗑️ Delete
-                    </button>
-                  </form>
-                  </div>
-                </div>
-              </div>  
-            </div>
-          </div>
-        </div>
-        </div>
-        
-        <!-- DISABLED USERS -->
-        <div id="disabledlist">
-         
-          <div class="results d-flex flex-column gap-3" >
-        <div class="event bg-white d-flex rounded overflow-hidden" th:each="user : ${disabledUsers}">
-          <img th:src="@{/user/{id}/pic(id=${user.id})}" alt="">
-          <div class="event-info p-4">
-            <div class="event-header d-flex gap-2 align-items-center justify-content-between">
-              <div class="d-flex gap-2 align-items-center ">
-                <h2 class="title "><a th:text="${user.firstName} + ' ' + ${user.lastName}" th:href="@{/user/{id}(id=${user.id})}" >Nombre</a></h2>
-              </div>
-             
-            </div>
-            <div class="event-body d-flex gap-3">
-              <div class="w-75 overflow-hidden d-flex flex-column gap-2">
-                <div class="main-info d-flex flex-wrap">
-                  <p class="m-0 "><strong>Age: </strong><span th:text="${user.age}"></span></p>
-                  <p class="m-0  " ><strong class="mr">Level: </strong><span th:text="${user.level}"></span></p>
-                  <p class="m-0 "><strong class="mr">Email: </strong><span th:text="${user.email}"></span></p>
-                  <p class="m-0 "><strong class="mr">Languages: </strong><span th:text="${user.languages}"></span></p>
-                </div>
-                <p class="description m-0" th:text="${user.description}">desc</p>
-                <p class="m-0">
-                  <p class="mx-2"><strong>⚠ reportings: </strong><span th:text="${user.numReports}"></span></p>
-              </div>
-              <div style="width: 13em;"></div>
-              <div >
-                <!-- <a type="button" class="btn btn-secondary btn-sm" style="width: 7em;" href="#" th:onclick='deleteForm()'> -->
-                  <form th:action="@{/user/{id}/deleteUser(id=${user.id})}" method="post">
-                    <button type="submit" class="btn btn-secondary btn-sm" style="width: 7em;">
-                      ↩ Enable
-                    </button>
-                 </form>
-                
-              </div>
-            </div>
-          </div>
+        <div class="search-panel input-group">
+          <input type="text" class="form-control" placeholder="Search...">
+          <button class="btn btn-primary" type="button">Search</button>
         </div>
       </div>
-        </div>
+      <div class="results-panel w-100">
+        <p class="fw-bold text-muted">Showing: <span th:text="${currentPage * size + (showedElems > 1? 1: 0)}">1</span> -
+          <span th:text="${currentPage * size + showedElems}">10</span> of <span th:text="${numPages * size}">30</span> (aprox.) results.</p>
+        <div class="results d-flex flex-column gap-3">
+          <!-- TODO add filter: blacklist and blocked -->
+          <th:block th:if="${users != null}">
+            <div class="search-filters d-flex gap-2 mb-2 flex-wrap" style="box-shadow: none;">
+              <a th:class="'btn' + ${filter == 'none'? ' btn-primary': ' btn-outline-primary'}"
+                href="" th:href="@{/admin/usersList}">All Users</a>
+              <a th:class="'btn' + ${filter == 'black_listed'? ' btn-primary': ' btn-outline-primary'}"
+                href="" th:href="@{/admin/usersList?filter=black_listed}">Blacklisted</a>
+              <a th:class="'btn' + ${filter == 'suspended'? ' btn-primary': ' btn-outline-primary'}"
+                href="" th:href="@{/admin/usersList?filter=suspended}">Suspended</a>
+                <a th:class="'btn' + ${filter == 'active'? ' btn-primary': ' btn-outline-primary'}"
+                href="" th:href="@{/admin/usersList?filter=active}">Active</a>
+            </div>
+            <th:block th:each="user : ${users}">
+              <div class="user bg-white d-flex rounded overflow-hidden">
+                <img th:src="@{/user/{id}/pic(id=${user.id})}" alt="" width="150px" class="object-fit-cover">
+                <div class="user-info p-3">
+                  <h2><a class="text-decoration-none" th:text="${user.firstName} + ' ' + ${user.lastName}" th:href="@{/user/{id}(id=${user.id})}">Nombre</a></h2>
+                  <div class="d-flex gap-3 align-items-center">
+                    <button type="button" class="btn btn-warning btn-sm">
+                      <th:block th:text="${userNumReports.get(user.id)}">1</th:block> Reports
+                    </button>
+                    <p class="m-0"><strong>Account Status: </strong><span th:text="${user.status}"></span></p>
+                  </div>
+                  <!-- TODO show button to list events of this user -->
+                  <div class="d-flex flex-wrap gap-3">
+                    <p><strong>Age: </strong><span th:text="${user.birthdate != null ? user.getAge() : ''}"></span></p>
+                    <p ><strong class="mr">Levels: </strong><span th:text="${user.level}"></span></p>
+                    <p><strong class="mr">Email: </strong><span th:text="${user.email}"></span></p>
+                    <p><strong class="mr">Languages: </strong><span th:text="${user.languages}"></span></p>
+                  </div>
+                  <div class="d-flex gap-2">
+                    <form th:if="${user.status.toString() != 'ACTIVE'}"
+                      th:action="@{/user/{id}/changeStatus/{status}(id=${user.id}, status=${'ACTIVE'})}" method="post">
+                      <button type="submit" class="btn btn-success">
+                        ✅ Activate
+                      </button>
+                    </form>
+                    <form th:if="${user.status.toString() != 'BLACK_LISTED'}"
+                      th:action="@{/user/{id}/changeStatus/{status}(id=${user.id}, status=${'BLACK_LISTED'})}" method="post">
+                      <button type="submit" class="btn btn-dark">
+                        📝 Blacklist
+                      </button>
+                    </form>
+                    <form th:if="${user.status.toString() != 'SUSPENDED'}"
+                      th:action="@{/user/{id}/changeStatus/{status}(id=${user.id}, status=${'SUSPENDED'})}" method="post">
+                      <button type="submit" class="btn btn-danger">
+                        🚫 Suspend
+                      </button>
+                    </form>
+                    <form th:action="@{/user/{id}/deleteUser(id=${user.id})}" method="post"
+                      onsubmit="return confirm('Are you sure you want to delete this user?');">
+                      <button type="submit" class="btn btn-danger">
+                          🗑️ Delete
+                      </button>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            </th:block>
+          </th:block>
 
-        <!--PAgination-->
-        <div class="pagination-panel mt-4 d-flex justify-content-center" th:if="${nbr}">
-          <nav aria-label="Page navigation example">
+          <th:block th:if="${events != null}">
+            <th:block th:each="event : ${events}">
+              <div class="event bg-white d-flex rounded overflow-hidden">
+                <img th:src="@{/event/{id}/coverPic(id=${event.id})}" alt="" width="200" style="object-fit: cover; flex-shrink: 0;">
+                <div class="event-info p-4">
+                  <div class="event-header d-flex gap-2 align-items-center justify-content-between">
+                    <div class="d-flex gap-2 align-items-center">
+                      <span class="badge bg-primary" th:text="${event.type}">Event</span>
+                      <h2 class="title"><a th:text="${event.title}" th:href="@{/event/{id}(id=${event.id})}" href="/event/2">Title</a></h2>
+                    </div>
+                    <form th:action="@{/event/{id}/delete(id=${event.id})}" method="post"
+                      onsubmit="return confirm('Are you sure you want to delete this event?');">
+                      <button type="submit" class="btn btn-danger btn-sm">
+                          🗑️ Delete
+                      </button>
+                    </form>
+                  </div>
+                  <div class="event-body d-flex gap-3">
+                    <div class="w-75 overflow-hidden d-flex flex-column gap-2">
+                      <div class="main-info d-flex flex-wrap">
+                        <p class="m-0"><strong>Price: </strong><span th:text="${#numbers.formatDecimal(event.price,1,2)}"></span><span>/persona</span></p>
+                        <p class="m-0 d-flex align-items-center"><strong>Vacancies: </strong>
+                          <span class="rounded-pill overflow-hidden ms-2" style="display: inline-block;width: 80px;background-color: darkgray;">
+                            <span class="bg-primary"
+                              th:style="'display:inline-block;width:' + ${((numJoinedUsers.get(event.id) + 0.0)/ event.capacity)*80} + 'px'">
+                              <span>
+                                <span th:text="${numJoinedUsers.get(event.id)}"></span>/<span th:text="${event.capacity}"></span>
+                              </span>
+                            </span>
+                          </span>
+                        </p>
+                        <p class="m-0"><strong>Destination: </strong><span th:text="${event.destination}">destino</span></p>
+                      </div>
+                      <p class="description m-0">Lorem ipsum dolor, sit amet consectetur adipisicing elit. Soluta optio fuga esse? Voluptatum quam, soluta cumque illum asperiores, veniam placeat debitis alias, ut obcaecati enim cum exercitationem aliquid ratione eligendi.</p>
+                      <p th:if="${event.notes.length > 0}" class="m-0"><strong>Notes: </strong>
+                        <th:block th:each="note: ${event.notes.split(',')}">
+                          <th:block th:switch="${note}">
+                            <span th:case="'NO_KIDS'">👶❌ </span>
+                            <span th:case="'NO_ANIMALS'">🐾❌ </span>
+                            <span th:case="'KIDS'">👶✅ </span>
+                            <span th:case="'ANIMALS'">🐾✅ </span>
+                          </th:block>
+                        </th:block>
+                      </p>
+                      <p class="m-0">
+                        <strong>Number of Images: </strong><th:block th:text="${numImgs.get(event.id)}">x</th:block>
+                      </p>
+                    </div>
+                    <div class="" style="flex-grow: 1;">
+                      <p class="m-0"><strong>📅 From: </strong><span th:text="${event.initDate}">Fecha Inicio</span></p>
+                      <p class="mb-1"><strong>📅 To: </strong><span th:text="${event.finishDate}">Fecha Fin</span></p>
+                      <!-- <p class="m-0"><strong>Organizer: </strong><span th:text="${event.userOwner.firstName} + ' ' + ${event.userOwner.lastName}">Nombre Apellidos</span></p> -->
+                      <p class="mb-0 fw-bold text-center">Organizer</p>
+                      <p class="mb-0"><a th:text="${event.userOwner.firstName} + ' ' + ${event.userOwner.lastName}"
+                        class="text-decoration-none fw-bold"
+                        th:href="@{/user/{id}(id=${event.userOwner.id})}" href="/user/3">Kaitlyn Brodest</a></p>
+                      <p class="m-0"><strong>Languages: </strong><span th:text="${event.userOwner.languages}">Español</span></p>
+                      <div class="user-rating d-flex flex-column align-items-start" th:if="${numOwnerRatings.get(event.id) > 0}">
+                        <form class="rating-static">
+                          <input type="radio" th:id="'u-' + ${event.userOwner.id} + 'star5'" name="rating" value="10" disabled th:checked="${avgOwnerRating.get(event.id) == 10}">
+                          <label class="full" th:for="'u-' + ${event.userOwner.id} + 'star5'" title="5 stars"></label>
+                          <input type="radio" th:id="'u-' + ${event.userOwner.id} + 'star4half'" name="rating" value="9" disabled th:checked="${avgOwnerRating.get(event.id) == 9}">
+                          <label class="half" th:for="'u-' + ${event.userOwner.id} + 'star4half'" title="4.5 stars"></label>
+                          <input type="radio" th:id="'u-' + ${event.userOwner.id} + 'star4'" name="rating" value="8" disabled th:checked="${avgOwnerRating.get(event.id) == 8}">
+                          <label class="full" th:for="'u-' + ${event.userOwner.id} + 'star4'" title="4 stars"></label>
+                          <input type="radio" th:id="'u-' + ${event.userOwner.id} + 'star3half'" name="rating" value="7" disabled th:checked="${avgOwnerRating.get(event.id) == 7}">
+                          <label class="half" th:for="'u-' + ${event.userOwner.id} + 'star3half'" title="3.5 stars"></label>
+                          <input type="radio" th:id="'u-' + ${event.userOwner.id} + 'star3'" name="rating" value="6" disabled th:checked="${avgOwnerRating.get(event.id) == 6}">
+                          <label class="full" th:for="'u-' + ${event.userOwner.id} + 'star3'" title="3 stars"></label>
+                          <input type="radio" th:id="'u-' + ${event.userOwner.id} + 'star2half'" name="rating" value="5" checked disabled th:checked="${avgOwnerRating.get(event.id) == 5}">
+                          <label class="half" th:for="'u-' + ${event.userOwner.id} + 'star2half'" title="2.5 stars"></label>
+                          <input type="radio" th:id="'u-' + ${event.userOwner.id} + 'star2'" name="rating" value="4" disabled th:checked="${avgOwnerRating.get(event.id) == 4}">
+                          <label class="full" th:for="'u-' + ${event.userOwner.id} + 'star2'" title="2 stars"></label>
+                          <input type="radio" th:id="'u-' + ${event.userOwner.id} + 'star1half'" name="rating" value="3" disabled th:checked="${avgOwnerRating.get(event.id) == 3}">
+                          <label class="half" th:for="'u-' + ${event.userOwner.id} + 'star1half'" title="1.5 stars"></label>
+                          <input type="radio" th:id="'u-' + ${event.userOwner.id} + 'star1'" name="rating" value="2" disabled th:checked="${avgOwnerRating.get(event.id) == 2}">
+                          <label class="full" th:for="'u-' + ${event.userOwner.id} + 'star1'" title="1 star"></label>
+                          <input type="radio" th:id="'u-' + ${event.userOwner.id} + 'starhalf'" name="rating" value="1" disabled th:checked="${avgOwnerRating.get(event.id) == 1}">
+                          <label class="half" th:for="'u-' + ${event.userOwner.id} + 'starhalf'" title=" 0.5 stars"></label>
+                        </form>
+                        <p class="mb-0 ps-1"><span th:text="${numOwnerRatings.get(event.id)}">1</span> Ratings</p>
+                      </div>
+
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </th:block>
+          </th:block>
+          <th:block th:if="${reports != null}">
+            <th:block th:each="report : ${reports}">
+              <div class="report bg-white d-flex flex-column rounded overflow-hidden p-3 w-100">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <p class="fw-bold mb-0 fs-5">Reported user: <a class="text-decoration-none"
+                    th:text="${report.userTarget.firstName} + ' ' + ${report.userTarget.lastName}"
+                    th:href="@{/user/{id}(id=${report.userTarget.id})}">Nombre</a></p>
+                  <p class="fw-bold mb-0" th:if="${report.event}">
+                    <a class="text-decoration-none" th:href="@{/event/{id}(id=${report.event.id})}"
+                      th:text="'Event#' + ${report.event.id}">
+                      Event#1
+                    </a>
+                  </p>
+                </div>
+                <p th:text="${report.description}"></p>
+                <div class="d-flex justify-content-between">
+                  <p class="mb-0 fw-bold text-muted">Cause: <span th:text="${report.cause.toString()}">OTHER</span></p>
+                  <p class="mb-0 fw-bold text-muted"
+                    th:text="${#temporals.format(report.dateSent,'dd-MM-yyyy HH:mm')}">27-01-2023 09:11</p>
+                </div>
+                <p class="text-end fw-bold">Report by <a class="text-decoration-none"
+                  th:text="${report.userSource.firstName} + ' ' + ${report.userSource.lastName}"
+                  th:href="@{/user/{id}(id=${report.userSource.id})}">Nombre</a></p>
+                <div class="d-flex justify-content-between gap-3">
+                  <div class="d-flex gap-3">
+                    <form th:if="${report.userTarget.status.toString() != 'ACTIVE'}"
+                      th:action="@{/user/{id}/changeStatus/{status}(id=${report.userTarget.id}, status=${'ACTIVE'})}" method="post">
+                      <button type="submit" class="btn btn-success">
+                        ✅ Activate
+                      </button>
+                    </form>
+                    <form th:if="${report.userTarget.status.toString() != 'BLACK_LISTED'}"
+                      th:action="@{/user/{id}/changeStatus/{status}(id=${report.userTarget.id}, status=${'BLACK_LISTED'})}" method="post">
+                      <button type="submit" class="btn btn-dark">
+                        📝 Blacklist
+                      </button>
+                    </form>
+                    <form th:if="${report.userTarget.status.toString() != 'SUSPENDED'}"
+                      th:action="@{/user/{id}/changeStatus/{status}(id=${report.userTarget.id}, status=${'SUSPENDED'})}" method="post">
+                      <button type="submit" class="btn btn-danger">
+                        🚫 Suspend
+                      </button>
+                    </form>
+                    <form th:action="@{/user/{id}/deleteUser(id=${report.userTarget.id})}" method="post"
+                    onsubmit="return confirm('Are you sure you want to delete this user?');">
+                      <button type="submit" class="btn btn-danger">
+                        🗑️ Delete
+                      </button>
+                    </form>
+                  </div>
+                  <form th:action="@{/admin/deleteReport/{id}(id=${report.id})}" method="post"
+                    onsubmit="return confirm('Are you sure you want to delete this report?');">
+                    <button type="submit" class="btn btn-danger btn-sm">
+                      🗑️ Delete Report
+                    </button>
+                  </form>
+                </div>
+              </div>
+            </th:block>
+          </th:block>
+        </div>
+        <div class="pagination-panel mt-4 d-flex justify-content-center">
+          <nav>
             <ul class="pagination">
-              <li th:class="'page-item' + ${currentPage==0?' disabled':''}"><a class="page-link" th:href="@{${nbr}(page=${currentPage - 1})}">Previous</a></li>
-              <li th:each="page,status:${numpages}" th:class="'page-item' + ${status.index==currentPage?' active':''}">
-                <a class="page-link" th:href="@{${nbr}(page=${status.index})}" th:text="${status.index + 1}">2</a>
-              </li>              
-              <li th:class="'page-item' + ${currentPage==(numPages -1)?' disabled':''}"><a class="page-link" th:href="@{${nbr}(page=${currentPage + 1})}">Next</a></li>
+              <li th:class="'page-item' + ${currentPage==0?' disabled':''}"><a class="page-link" th:href="@{''(filter=${filter},page=${currentPage - 1})}">Previous</a></li>
+              <li th:each="page,status:${numPagesArray}" th:class="'page-item' + ${status.index==currentPage?' active':''}">
+                <a class="page-link" th:href="@{''(filter=${filter}, page=${status.index})}" th:text="${status.index + 1}">2</a>
+              </li>
+              <li th:class="'page-item' + ${currentPage>=(numPages -1)?' disabled':''}"><a class="page-link" th:href="@{''(filter=${filter},page=${currentPage + 1})}">Next</a></li>
             </ul>
           </nav>
         </div>
       </div>
     </main>
-
     <th:block th:replace="fragments/footer.html :: footer" />
-    
   </body>
 </html>

@@ -7,6 +7,7 @@
     <script th:src="@{/js/modal.js}" src="js/modal.js"></script>
     <script th:src="@{/js/event.js}" src="js/event.js"></script>
     <link rel="stylesheet" th:href="@{/css/modal.css}" href="css/modal.css">
+    <link rel="stylesheet" th:href="@{/css/stars-rating.css}" href="css/stars-rating.css">
     <link rel="stylesheet" th:href="@{/css/event.css}" href="css/event.css">
 </head>
 
@@ -36,6 +37,8 @@
                                             <option value="FINISH" th:selected="${event.status.name().equals('FINISH')}">FINISH</option>
                                         </select>
                                         <br>
+                                        <p class="mb-3"><strong class="text-muted">Note: </strong>
+                                            if the event has no vacancies, you can't set its status to OPEN.</p>
                                         <button type="submit" class="btn btn-primary">
                                             Send
                                         </button>
@@ -55,11 +58,11 @@
                 </div>
                 <div class="d-flex flex-column align-items-center ms-4">
                     <h1><span th:text="${#numbers.formatDecimal(event.price,1,2)}"></span><span class="fs-4 mb-0">/person</span></h1>
-                    <h5><span id="occupied" th:text="${event.occupied}">1</span>/<span id="capacity" th:text="${event.capacity}">5</span> Vacancies</h5>
+                    <h5><span id="occupied" th:text="${numJoinedUsers}">1</span>/<span id="capacity" th:text="${event.capacity}">5</span> Vacancies</h5>
                     <div>
                         <div id="pbar-vacs-total" class="rounded-pill overflow-hidden">
                             <div id="pbar-vacs-progress" class="bg-primary"
-                                th:style="'width:' + ${((event.occupied + 0.0)/ event.capacity)*200} + 'px'"></div>
+                                th:style="'width:' + ${((numJoinedUsers + 0.0)/ event.capacity)*200} + 'px'"></div>
                         </div>
                     </div>
                 </div>
@@ -68,22 +71,128 @@
                     th:disabled="${(!isLogged || !event.status.name().equals('OPEN')) && !joined || event.status.name().equals('FINISH')}" th:checked="${joined}">
                     <p id="text-join" class="text-center mb-0">Join</p>
                 </div>
-                <div id="acts-aft-join" class="ms-2" th:style="${joined}? 'display:flex; flex-direction: column;' : 'display: none;'">
-                    <a class="btn btn-primary mb-1" th:href="@{/chat}" href="/chat">Chat</a>
-                    <!-- Comprobar que esté acabado y que el usuario logeado esté unido al evento-->
-                    <div id="acts-aft-join" class="ms-2" th:style="${canRate} ? 'display:flex; flex-direction: column;' : 'display: none;'">
-                        
-                        <th:block th:if="${numEventRating >= 1}">
-                            <button type="submit" class="btn btn-primary" disabled="disabled">
-                                Form Done</button>       
-                             </div> 
-                        </th:block>
-                        <th:block th:if="${numEventRating == 0}">
-                            <a class="btn btn-primary" th:href="@{{id}/saveRating/(id=${event.id})}" href="/saveRating">Form</a>
-                        </th:block>
+                <div id="acts-aft-join" class="ms-2 gap-1" th:style="${joined}? 'display:flex; flex-direction: column;' : 'display: none;'">
+                    <a class="btn btn-primary btn-sm" th:href="@{/chat}" href="/chat">Chat</a>
+                    <!-- This section is showed just when the event has finalized -->
+                    <th:block th:if="${joined && event.status.toString().equals('FINISH')}">
+                    <button type="button" class="btn btn-primary btn-sm"
+                        onclick="toggleModalForm('rate-users-form-cont')" th:if="${joinedUsers != null && joinedUsers.size()>0}">Rate Users</button>
+                    <button type="button" class="btn btn-primary btn-sm"
+                        onclick="toggleModalForm('rate-event-form-cont')">Rate Event</button>
+
+                    <div id="rate-users-form-cont" class="modal-form-cont" th:if="${joinedUsers != null && joinedUsers.size()>0}">
+                        <div class="modal-form bg-white rounded">
+                            <h3>Rate Users</h3>
+                            <div class="d-flex gap-1 flex-wrap mb-3">
+                                <th:block th:each="joinedUser, index: ${joinedUsers}">
+                                    <button type="button" th:class="'b-user-sel-rating btn btn-sm rounded-pill' + ${index.first? ' btn-primary': ' btn-outline-primary'}"
+                                        href="" th:href="@{/admin/usersList}" th:attr="onclick=|toggleUserRating('${joinedUser.id}', this)|"
+                                        th:text="${joinedUser.username}">Users</button>
+                                </th:block>
+                            </div>
+                            <th:block th:each="joinedUser, index: ${joinedUsers}">
+                                <form th:id="'user-'+ ${joinedUser.id} +'-rating'"
+                                    th:class="'user-rating-cont' + ${index.first? ' d-block': ' d-none'}">
+                                    <h5 class="mb-1">
+                                        <a class="text-decoration-none" th:href="@{/user/{id}(id=${joinedUser.id})}"
+                                            th:text="${joinedUser.firstName + ' ' + joinedUser.lastName}">Pedro</a>
+                                    </h5>
+                                    <label for="report-desc" class="form-label">Rating:</label>
+                                    <br>
+                                    <div class="rating">
+                                        <input type="radio" th:id="'r-u-' + ${joinedUser.id} + '-star5'" name="rating" value="10" 
+                                            th:checked="${ratingUsers.get(joinedUser.id) != null && ratingUsers.get(joinedUser.id).rating == 10}">
+                                        <label class="full" th:for="'r-u-' + ${joinedUser.id} + '-star5'" title="5 stars"></label>
+                                        <input type="radio" th:id="'r-u-' + ${joinedUser.id} + '-star4half'" name="rating" value="9" 
+                                            th:checked="${ratingUsers.get(joinedUser.id) != null && ratingUsers.get(joinedUser.id).rating == 9}">
+                                        <label class="half" th:for="'r-u-' + ${joinedUser.id} + '-star4half'" title="4.5 stars"></label>
+                                        <input type="radio" th:id="'r-u-' + ${joinedUser.id} + '-star4'" name="rating" value="8" 
+                                            th:checked="${ratingUsers.get(joinedUser.id) != null && ratingUsers.get(joinedUser.id).rating == 8}">
+                                        <label class="full" th:for="'r-u-' + ${joinedUser.id} + '-star4'" title="4 stars"></label>
+                                        <input type="radio" th:id="'r-u-' + ${joinedUser.id} + '-star3half'" name="rating" value="7" 
+                                            th:checked="${ratingUsers.get(joinedUser.id) != null && ratingUsers.get(joinedUser.id).rating == 7}">
+                                        <label class="half" th:for="'r-u-' + ${joinedUser.id} + '-star3half'" title="3.5 stars"></label>
+                                        <input type="radio" th:id="'r-u-' + ${joinedUser.id} + '-star3'" name="rating" value="6" 
+                                            th:checked="${ratingUsers.get(joinedUser.id) != null && ratingUsers.get(joinedUser.id).rating == 6}">
+                                        <label class="full" th:for="'r-u-' + ${joinedUser.id} + '-star3'" title="3 stars"></label>
+                                        <input type="radio" th:id="'r-u-' + ${joinedUser.id} + '-star2half'" name="rating" value="5" 
+                                            th:checked="${ratingUsers.get(joinedUser.id) != null && ratingUsers.get(joinedUser.id).rating == 5}">
+                                        <label class="half" th:for="'r-u-' + ${joinedUser.id} + '-star2half'" title="2.5 stars"></label>
+                                        <input type="radio" th:id="'r-u-' + ${joinedUser.id} + '-star2'" name="rating" value="4" 
+                                            th:checked="${ratingUsers.get(joinedUser.id) != null && ratingUsers.get(joinedUser.id).rating == 4}">
+                                        <label class="full" th:for="'r-u-' + ${joinedUser.id} + '-star2'" title="2 stars"></label>
+                                        <input type="radio" th:id="'r-u-' + ${joinedUser.id} + '-star1half'" name="rating" value="3" 
+                                            th:checked="${ratingUsers.get(joinedUser.id) != null && ratingUsers.get(joinedUser.id).rating == 3}">
+                                        <label class="half" th:for="'r-u-' + ${joinedUser.id} + '-star1half'" title="1.5 stars"></label>
+                                        <input type="radio" th:id="'r-u-' + ${joinedUser.id} + '-star1'" name="rating" value="2" 
+                                            th:checked="${ratingUsers.get(joinedUser.id) != null && ratingUsers.get(joinedUser.id).rating == 2}">
+                                        <label class="full" th:for="'r-u-' + ${joinedUser.id} + '-star1'" title="1 star"></label>
+                                        <input type="radio" th:id="'r-u-' + ${joinedUser.id} + '-starhalf'" name="rating" value="1" 
+                                            th:checked="${ratingUsers.get(joinedUser.id) != null && ratingUsers.get(joinedUser.id).rating == 1}">
+                                        <label class="half" th:for="'r-u-' + ${joinedUser.id} + '-starhalf'" title=" 0.5 stars"></label>
+                                    </div>
+                                    <br><br>
+                                    <label for="report-desc" class="form-label">Comment:</label>
+                                    <textarea class="form-control" name="description" placeholder="Leave a comment here" style="height: 150px; width: 100%"
+                                        th:text="${ratingUsers.get(joinedUser.id) != null? ratingUsers.get(joinedUser.id).description : ''}"></textarea>
+                                    <br>
+                                    <button type="button" class="btn btn-primary" th:attr="onclick=|rateUserEvent('${joinedUser.id}', '${event.id}')|">
+                                        Send
+                                    </button>
+                                    <button type="button" class="btn btn-primary" onclick="toggleModalForm('rate-users-form-cont')">Cancel</button>
+                                </form>
+                            </th:block>
+                        </div>
                     </div>
-                               
-                    
+                    <div id="rate-event-form-cont" class="modal-form-cont">
+                        <form class="modal-form bg-white rounded">
+                            <h3>Rate Event</h3>
+                            <label for="report-desc" class="form-label">Rating:</label>
+                            <br>
+                            <div class="rating">
+                                <input type="radio" id="star5" name="rating" value="10" 
+                                    th:checked="${ratingEvent != null && ratingEvent.rating == 10}">
+                                <label class="full" for="star5" title="5 stars"></label>
+                                <input type="radio" id="star4half" name="rating" value="9" 
+                                    th:checked="${ratingEvent != null && ratingEvent.rating == 9}">
+                                <label class="half" for="star4half" title="4.5 stars"></label>
+                                <input type="radio" id="star4" name="rating" value="8" 
+                                    th:checked="${ratingEvent != null && ratingEvent.rating == 8}">
+                                <label class="full" for="star4" title="4 stars"></label>
+                                <input type="radio" id="star3half" name="rating" value="7" 
+                                    th:checked="${ratingEvent != null && ratingEvent.rating == 7}">
+                                <label class="half" for="star3half" title="3.5 stars"></label>
+                                <input type="radio" id="star3" name="rating" value="6" 
+                                    th:checked="${ratingEvent != null && ratingEvent.rating == 6}">
+                                <label class="full" for="star3" title="3 stars"></label>
+                                <input type="radio" id="star2half" name="rating" value="5" 
+                                    th:checked="${ratingEvent != null && ratingEvent.rating == 5}">
+                                <label class="half" for="star2half" title="2.5 stars"></label>
+                                <input type="radio" id="star2" name="rating" value="4" 
+                                    th:checked="${ratingEvent != null && ratingEvent.rating == 4}">
+                                <label class="full" for="star2" title="2 stars"></label>
+                                <input type="radio" id="star1half" name="rating" value="3" 
+                                    th:checked="${ratingEvent != null && ratingEvent.rating == 3}">
+                                <label class="half" for="star1half" title="1.5 stars"></label>
+                                <input type="radio" id="star1" name="rating" value="2" 
+                                    th:checked="${ratingEvent != null && ratingEvent.rating == 2}">
+                                <label class="full" for="star1" title="1 star"></label>
+                                <input type="radio" id="starhalf" name="rating" value="1" 
+                                    th:checked="${ratingEvent != null && ratingEvent.rating == 1}">
+                                <label class="half" for="starhalf" title=" 0.5 stars"></label>
+                            </div>
+                            <br><br>
+                            <label for="report-desc" class="form-label">Comment:</label>
+                            <textarea class="form-control" name="description" placeholder="Leave a comment here" style="height: 150px; width: 100%"
+                                th:text="${ratingEvent != null? ratingEvent.description : ''}"></textarea>
+                            <br>
+                            <button type="button" class="btn btn-primary" th:attr="onclick=|rateEvent('${event.id}')|">
+                                Send
+                            </button>
+                            <button type="button" class="btn btn-primary" onclick="toggleModalForm('rate-event-form-cont')">Cancel</button>
+                        </form>
+                    </div>
+                    </th:block>
                 </div>
             </div>
         </div>
@@ -163,13 +272,12 @@
                             <img src="" alt="">
                         </div>
 
-                        <th:block th:if="${isOwner}">
+                        <th:block th:if="${isOwner || (joined && !event.status.toString().equals('OPEN'))}">
                             <button type="button" class="btn btn-primary mb-1" onclick="toggleModalForm('pic-form-cont')">Add Image</button>
                             <div id="pic-form-cont" class="modal-form-cont">
                                 <form class="modal-form bg-white rounded" th:action="@{/event/{id}/addPic(id=${event.id})}" method="post"
                                     enctype="multipart/form-data">
                                     <h3>Upload an image.</h3>
-                                    <input type="hidden" name="saveRatingValue" value="false">
                                     <label for="report-desc" class="form-label">Upload an image:</label>
                                     <input class="form-control" type="file" id="form-file" name="photo">
                                     <br>
@@ -182,8 +290,79 @@
                         </th:block>
 
                     </div>
+                    <div id="event-ratings" class="mb-5" th:if="${event.status.toString().equals('FINISH')}">
+                        <h2>Ratings</h2>
+                        <p th:if="${numRatings == 0}">No ratings yet.</p>
+                        <th:block th:if="${numRatings > 0}">
+                            <div class="d-flex flex-column align-items-start mb-3">
+                                <div class="rating-static">
+                                    <input type="radio" id="event-star5" name="event-rating" value="10" 
+                                        disabled th:checked="${avgRating == 10}">
+                                    <label class="full" for="event-star5" title="5 stars"></label>
+                                    <input type="radio" id="event-star4half" name="event-rating" value="9" 
+                                        disabled th:checked="${avgRating == 9}">
+                                    <label class="half" for="event-star4half" title="4.5 stars"></label>
+                                    <input type="radio" id="event-star4" name="event-rating" value="8" 
+                                        disabled th:checked="${avgRating == 8}">
+                                    <label class="full" for="event-star4" title="4 stars"></label>
+                                    <input type="radio" id="event-star3half" name="event-rating" value="7" 
+                                        disabled th:checked="${avgRating == 7}">
+                                    <label class="half" for="event-star3half" title="3.5 stars"></label>
+                                    <input type="radio" id="event-star3" name="event-rating" value="6" 
+                                        disabled th:checked="${avgRating == 6}">
+                                    <label class="full" for="event-star3" title="3 stars"></label>
+                                    <input type="radio" id="event-star2half" name="event-rating" value="5" 
+                                        disabled th:checked="${avgRating == 5}">
+                                    <label class="half" for="event-star2half" title="2.5 stars"></label>
+                                    <input type="radio" id="event-star2" name="event-rating" value="4" 
+                                        disabled th:checked="${avgRating == 4}">
+                                    <label class="full" for="event-star2" title="2 stars"></label>
+                                    <input type="radio" id="event-star1half" name="event-rating" value="3" 
+                                        disabled th:checked="${avgRating == 3}">
+                                    <label class="half" for="event-star1half" title="1.5 stars"></label>
+                                    <input type="radio" id="event-star1" name="event-rating" value="2" 
+                                        disabled th:checked="${avgRating == 2}">
+                                    <label class="full" for="event-star1" title="1 star"></label>
+                                    <input type="radio" id="event-starhalf" name="event-rating" value="1" 
+                                        disabled th:checked="${avgRating == 1}">
+                                    <label class="half" for="event-starhalf" title=" 0.5 stars"></label>
+                                </div>
+                                <p class="mb-0 ps-1"><span th:text="${numRatings}">1</span> Ratings</p>
+                            </div>
+                            <div class="d-flex flex-column gap-2">
+                                <div class="border d-flex flex-column align-items-start px-3 pt-3 pb-4" th:each="rating : ${eventRatings}">
+                                    <h5><a class="text-decoration-none fw-bold" th:href="@{/user/{id}(id=${rating.userSource.id})}"
+                                        th:text="${rating.userSource.username}">Alex</a></h5>
+                                    <div class="rating-static">
+                                        <input type="radio" th:id="'event-' + ${rating.userSource.id} + 'star5'" th:name="'rating-' + ${rating.userSource.id}" value="10" disabled th:checked="${rating.rating == 10}">
+                                        <label class="full" th:for="'event-' + ${rating.userSource.id} + 'star5'" title="5 stars"></label>
+                                        <input type="radio" th:id="'event-' + ${rating.userSource.id} + 'star4half'" th:name="'rating-' + ${rating.userSource.id}" value="9" disabled th:checked="${rating.rating == 9}">
+                                        <label class="half" th:for="'event-' + ${rating.userSource.id} + 'star4half'" title="4.5 stars"></label>
+                                        <input type="radio" th:id="'event-' + ${rating.userSource.id} + 'star4'" th:name="'rating-' + ${rating.userSource.id}" value="8" disabled th:checked="${rating.rating == 8}">
+                                        <label class="full" th:for="'event-' + ${rating.userSource.id} + 'star4'" title="4 stars"></label>
+                                        <input type="radio" th:id="'event-' + ${rating.userSource.id} + 'star3half'" th:name="'rating-' + ${rating.userSource.id}" value="7" disabled th:checked="${rating.rating == 7}">
+                                        <label class="half" th:for="'event-' + ${rating.userSource.id} + 'star3half'" title="3.5 stars"></label>
+                                        <input type="radio" th:id="'event-' + ${rating.userSource.id} + 'star3'" th:name="'rating-' + ${rating.userSource.id}" value="6" disabled th:checked="${rating.rating == 6}">
+                                        <label class="full" th:for="'event-' + ${rating.userSource.id} + 'star3'" title="3 stars"></label>
+                                        <input type="radio" th:id="'event-' + ${rating.userSource.id} + 'star2half'" th:name="'rating-' + ${rating.userSource.id}" value="5" disabled th:checked="${rating.rating == 5}">
+                                        <label class="half" th:for="'event-' + ${rating.userSource.id} + 'star2half'" title="2.5 stars"></label>
+                                        <input type="radio" th:id="'event-' + ${rating.userSource.id} + 'star2'" th:name="'rating-' + ${rating.userSource.id}" value="4" disabled th:checked="${rating.rating == 4}">
+                                        <label class="full" th:for="'event-' + ${rating.userSource.id} + 'star2'" title="2 stars"></label>
+                                        <input type="radio" th:id="'event-' + ${rating.userSource.id} + 'star1half'" th:name="'rating-' + ${rating.userSource.id}" value="3" disabled th:checked="${rating.rating == 3}">
+                                        <label class="half" th:for="'event-' + ${rating.userSource.id} + 'star1half'" title="1.5 stars"></label>
+                                        <input type="radio" th:id="'event-' + ${rating.userSource.id} + 'star1'" th:name="'rating-' + ${rating.userSource.id}" value="2" disabled th:checked="${rating.rating == 2}">
+                                        <label class="full" th:for="'event-' + ${rating.userSource.id} + 'star1'" title="1 star"></label>
+                                        <input type="radio" th:id="'event-' + ${rating.userSource.id} + 'starhalf'" th:name="'rating-' + ${rating.userSource.id}" value="1" disabled th:checked="${rating.rating == 1}">
+                                        <label class="half" th:for="'event-' + ${rating.userSource.id} + 'starhalf'" title=" 0.5 stars"></label>
+                                    </div>
+                                    <p class="mb-0 mt-3" th:text="${rating.description}"></p>
+                                </div>
+                            </div>
+                        </th:block>
+                    </div>
                     <div th:if="${isOwner}">
-                        <form action="" method="get">
+                        <form class="d-flex justify-content-center" th:action="@{/event/{id}/delete(id=${event.id})}" method="post"
+                            onsubmit="return confirm('Are you sure you want delete this event?');">
                             <button id="delete-event" type="submit" class="btn btn-danger">Delete this event</button>
                         </form>
                     </div>
@@ -238,24 +417,51 @@
                             <h5><a class="text-decoration-none text-body" th:href="@{/user/{id}(id=${event.userOwner.id})}">
                                 <span th:text="${event.userOwner.lastName}">Surname</span>
                             </a></h5>
-                            <p class="mb-0">
-                                <span th:if="${ownerRatings > 0}">
-                                  <span th:each="rating : ${#numbers.sequence(1, ownerRatings)}">⭐</span>
-                                  <span th:if="${ownerRatings % 1 != 0}">★</span>
-                                </span>
-                                <span th:unless="${ownerRatings > 0}">No ratings</span>
-                            </p>
-                              
-                              
+                            <div class="user-rating d-flex flex-column align-items-start" th:if="${numOwnerRatings > 0}">
+                                <div class="rating-static">
+                                    <input type="radio" id="user-star5" name="user-rating" value="10" disabled th:checked="${avgOwnerRating == 10}">
+                                    <label class="full" for="user-star5" title="5 stars"></label>
+                                    <input type="radio" id="user-star4half" name="user-rating" value="9" disabled th:checked="${avgOwnerRating == 9}">
+                                    <label class="half" for="user-star4half" title="4.5 stars"></label>
+                                    <input type="radio" id="user-star4" name="user-rating" value="8" disabled th:checked="${avgOwnerRating == 8}">
+                                    <label class="full" for="user-star4" title="4 stars"></label>
+                                    <input type="radio" id="user-star3half" name="user-rating" value="7" disabled th:checked="${avgOwnerRating == 7}">
+                                    <label class="half" for="user-star3half" title="3.5 stars"></label>
+                                    <input type="radio" id="user-star3" name="user-rating" value="6" disabled th:checked="${avgOwnerRating == 6}">
+                                    <label class="full" for="user-star3" title="3 stars"></label>
+                                    <input type="radio" id="user-star2half" name="user-rating" value="5" checked disabled th:checked="${avgOwnerRating == 5}">
+                                    <label class="half" for="user-star2half" title="2.5 stars"></label>
+                                    <input type="radio" id="user-star2" name="user-rating" value="4" disabled th:checked="${avgOwnerRating == 4}">
+                                    <label class="full" for="user-star2" title="2 stars"></label>
+                                    <input type="radio" id="user-star1half" name="user-rating" value="3" disabled th:checked="${avgOwnerRating == 3}">
+                                    <label class="half" for="user-star1half" title="1.5 stars"></label>
+                                    <input type="radio" id="user-star1" name="user-rating" value="2" disabled th:checked="${avgOwnerRating == 2}">
+                                    <label class="full" for="user-star1" title="1 star"></label>
+                                    <input type="radio" id="user-starhalf" name="user-rating" value="1" disabled th:checked="${avgOwnerRating == 1}">
+                                    <label class="half" for="user-starhalf" title=" 0.5 stars"></label>
+                                </div>
+                                <p class="mb-0 ps-1"><span th:text="${numOwnerRatings}">1</span> Ratings</p>
+                            </div>
+
                         </div>
                     </div>
-                    <th:block th:if="${isLogged}">
-                        <button type="button" class="btn btn-danger" onclick="toggleModalForm('report-form-cont')">Report</button>
+                    <th:block th:if="${isLogged && !isOwner}">
+                        <div class="d-flex justify-content-center">
+                            <button type="button" class="btn btn-danger" onclick="toggleModalForm('report-form-cont')">Report</button>
+                        </div>
                         <div id="report-form-cont" class="modal-form-cont">
                             <form class="modal-form bg-white rounded">
-                                <h3>Report <span th:text="${event.userOwner.firstName} + ' ' + ${event.userOwner.lastName}"></span> .</h3>
-                                <label for="report-desc" class="form-label">Reason of the report:</label>
-                                <textarea class="form-control" id="report-desc" name="report-desc" placeholder="Leave a comment here" style="height: 150px; width: 100%"></textarea>
+                                <h3>Report <span th:text="${event.userOwner.firstName} + ' ' + ${event.userOwner.lastName}"></span>.</h3>
+                                <input id="report-event" type="hidden" name="event" th:value="${event.id}">
+                                <label for="report-cause" class="form-label">Reason of the report:</label>
+                                <select class="form-select" name="cause" id="report-cause">
+                                    <option value="EVENT_PAGE">Content in event's page</option>
+                                    <option value="MESSAGE">Sended message/s</option>
+                                    <option value="DURING_EVENT">Behavior during the event</option>
+                                </select>
+                                <br>
+                                <label for="report-desc" class="form-label">Details of this report:</label>
+                                <textarea class="form-control" id="report-desc" name="description" placeholder="Leave a comment here..." style="height: 150px; width: 100%"></textarea>
                                 <br>
                                 <button type="button" class="btn btn-primary" th:attr="onclick=|reportUser('${event.userOwner.id}')|">
                                     Send

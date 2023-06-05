@@ -20,18 +20,11 @@ public class RootController {
 
     private static final Logger log = LogManager.getLogger(RootController.class);
 
-    // Added
-
     @GetMapping("/signUp")
     public String signIn(Model model) {
         model.addAttribute("User", new User());
         return "signUp";
     }
-
-    // @GetMapping("/search")
-    // public String search(Model model) {
-    // return "search";
-    // }
 
     @GetMapping("/formRateEvent")
     public String formRateEvent(Model model) {
@@ -43,11 +36,6 @@ public class RootController {
         model.addAttribute("Event", new Event());
         return "formAddEvent";
     }
-
-    // @GetMapping("/event")
-    // public String event(Model model) {
-    // return "event";
-    // }
 
     @GetMapping("/login")
     public String login(Model model) {

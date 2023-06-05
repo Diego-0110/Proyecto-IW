@@ -59,12 +59,56 @@ function toggleFav(elem, eventId){
 
 function reportUser(userTarget, description = ""){
     description = document.getElementById('report-desc').value;
-    go(`/user/${userTarget}/report`, "POST", {description}, false)
+    let event = document.getElementById('report-event').value;
+    let cause = document.getElementById('report-cause').value;
+    go(`/user/${userTarget}/report`, "POST", {description, event, cause}, false)
         .then(d => {console.log(d);
             toggleModalForm('report-form-cont');})
         .catch(e => {console.log(e)
             alert("Something went wrong.");
             });
+}
+
+function rateEvent(eventId){
+    let rating = document.querySelector('#rate-event-form-cont input[name="rating"]:checked').value;
+    let description = document.querySelector('#rate-event-form-cont textarea[name="description"]').value;
+    go(`/event/${eventId}/rate`, "POST", {rating, description}, false)
+        .then(d => {console.log(d);
+            toggleModalForm('rate-event-form-cont');})
+        .catch(e => {console.log(e)
+            alert("Something went wrong.");
+            });
+}
+
+function rateUserEvent(userId, eventId){
+    let rating = document.querySelector('#user-' + userId + '-rating input[name="rating"]:checked').value;
+    let description = document.querySelector('#user-' + userId + '-rating textarea[name="description"]').value;
+    go(`/event/${eventId}/rateUser/${userId}`, "POST", {rating, description}, false)
+        .then(d => {console.log(d);
+            // toggleModalForm('rate-event-form-cont');
+            alert("Rating sended successfully.");
+            })
+        .catch(e => {console.log(e)
+            alert("Something went wrong.");
+            });
+}
+
+function toggleUserRating(userId, button){
+    let activeCont = document.querySelector('#rate-users-form-cont .user-rating-cont.d-block');
+    if (activeCont) {
+        activeCont.classList.remove('d-block');
+        activeCont.classList.add('d-none');
+        let activeButton = document.querySelector('#rate-users-form-cont .b-user-sel-rating.btn-primary');
+        if(activeButton){
+            activeButton.classList.remove('btn-primary');
+            activeButton.classList.add('btn-outline-primary');
+        }
+    }
+    let newActiveCont = document.querySelector('#user-' + userId + '-rating');
+    newActiveCont.classList.remove('d-none');
+    newActiveCont.classList.add('d-block');
+    button.classList.remove('btn-outline-primary');
+    button.classList.add('btn-primary');
 }
 
 function toggleShowPic(src = null){
@@ -78,6 +122,8 @@ function toggleShowPic(src = null){
         // document.getElementById('report-desc').value = '';
     }
 }
+
+
 
 // TODO Check use and remove.
 function toggleReportForm(){

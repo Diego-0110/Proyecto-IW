@@ -17,6 +17,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
 
+import es.ucm.fdi.iw.Repositories.UserRepository;
 import es.ucm.fdi.iw.model.User;
 import es.ucm.fdi.iw.model.User.Role;
 
@@ -36,7 +37,10 @@ public class LoginSuccessHandler implements AuthenticationSuccessHandler {
     private HttpSession session;
     
     @Autowired
-    private EntityManager entityManager;    
+    private EntityManager entityManager;
+	
+	@Autowired
+	private UserRepository userRepository;
     
 	private static Logger log = LogManager.getLogger(LoginSuccessHandler.class);
 	
@@ -61,9 +65,7 @@ public class LoginSuccessHandler implements AuthenticationSuccessHandler {
 	    
 	    // add a 'u' session variable, accessible from thymeleaf via ${session.u}
 	    log.info("Storing user info for {} in session {}", username, session.getId());
-		User u = entityManager.createNamedQuery("User.byUsername", User.class)
-		        .setParameter("username", username)
-		        .getSingleResult();		
+		User u = userRepository.byUsername(username);
 		session.setAttribute("u", u);
 
 		// add 'url' and 'ws' session variables

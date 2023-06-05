@@ -4,6 +4,7 @@
     <th:block th:replace="fragments/head :: header" />
     <title>DreamTrip</title>
     <link rel="stylesheet" th:href="@{/css/search.css}" href="css/search.css" type="text/css" />
+    <link rel="stylesheet" th:href="@{/css/stars-rating.css}" href="css/stars-rating.css">
     <script th:src="@{/js/event.js}" src="js/event.js"></script>
   </head>
 
@@ -73,9 +74,9 @@
                     <p class="m-0 d-flex align-items-center"><strong>Vacancies: </strong>
                       <span class="rounded-pill overflow-hidden ms-2" style="display: inline-block;width: 80px;background-color: darkgray;">
                         <span class="bg-primary"
-                          th:style="'display:inline-block;width:' + ${((event.occupied + 0.0)/ event.capacity)*80} + 'px'">
+                          th:style="'display:inline-block;width:' + ${((numJoinedUsers.get(event.id) + 0.0)/ event.capacity)*80} + 'px'">
                           <span>
-                            <span th:text="${event.occupied}"></span>/<span th:text="${event.capacity}"></span>
+                            <span th:text="${numJoinedUsers.get(event.id)}"></span>/<span th:text="${event.capacity}"></span>
                           </span>
                         </span>
                       </span>
@@ -94,12 +95,41 @@
                     </th:block>
                   </p>
                 </div>
-                <div class="">
+                <div class="" style="flex-grow: 1;">
                   <p class="m-0"><strong>📅 From: </strong><span th:text="${event.initDate}">Fecha Inicio</span></p>
-                  <p><strong>📅 To: </strong><span th:text="${event.finishDate}">Fecha Fin</span></p>
-                  <p class="m-0"><strong>Organizer: </strong><span th:text="${event.userOwner.firstName} + ' ' + ${event.userOwner.lastName}">Nombre Apellidos</span></p>
+                  <p class="mb-1"><strong>📅 To: </strong><span th:text="${event.finishDate}">Fecha Fin</span></p>
+                  <!-- <p class="m-0"><strong>Organizer: </strong><span th:text="${event.userOwner.firstName} + ' ' + ${event.userOwner.lastName}">Nombre Apellidos</span></p> -->
+                  <p class="mb-0 fw-bold text-center">Organizer</p>
+                  <p class="mb-0"><a th:text="${event.userOwner.firstName} + ' ' + ${event.userOwner.lastName}"
+                    class="text-decoration-none fw-bold"
+                    th:href="@{/user/{id}(id=${event.userOwner.id})}" href="/user/3">Kaitlyn Brodest</a></p>
                   <p class="m-0"><strong>Languages: </strong><span th:text="${event.userOwner.languages}">Español</span></p>
-                  <p class="mb-0"><span>⭐⭐⭐⭐⭐</span></p>
+                  <div class="user-rating d-flex flex-column align-items-start" th:if="${numOwnerRatings.get(event.id) > 0}">
+                    <form class="rating-static">
+                      <input type="radio" th:id="'u-' + ${event.userOwner.id} + 'star5'" name="rating" value="10" disabled th:checked="${avgOwnerRating.get(event.id) == 10}">
+                      <label class="full" th:for="'u-' + ${event.userOwner.id} + 'star5'" title="5 stars"></label>
+                      <input type="radio" th:id="'u-' + ${event.userOwner.id} + 'star4half'" name="rating" value="9" disabled th:checked="${avgOwnerRating.get(event.id) == 9}">
+                      <label class="half" th:for="'u-' + ${event.userOwner.id} + 'star4half'" title="4.5 stars"></label>
+                      <input type="radio" th:id="'u-' + ${event.userOwner.id} + 'star4'" name="rating" value="8" disabled th:checked="${avgOwnerRating.get(event.id) == 8}">
+                      <label class="full" th:for="'u-' + ${event.userOwner.id} + 'star4'" title="4 stars"></label>
+                      <input type="radio" th:id="'u-' + ${event.userOwner.id} + 'star3half'" name="rating" value="7" disabled th:checked="${avgOwnerRating.get(event.id) == 7}">
+                      <label class="half" th:for="'u-' + ${event.userOwner.id} + 'star3half'" title="3.5 stars"></label>
+                      <input type="radio" th:id="'u-' + ${event.userOwner.id} + 'star3'" name="rating" value="6" disabled th:checked="${avgOwnerRating.get(event.id) == 6}">
+                      <label class="full" th:for="'u-' + ${event.userOwner.id} + 'star3'" title="3 stars"></label>
+                      <input type="radio" th:id="'u-' + ${event.userOwner.id} + 'star2half'" name="rating" value="5" checked disabled th:checked="${avgOwnerRating.get(event.id) == 5}">
+                      <label class="half" th:for="'u-' + ${event.userOwner.id} + 'star2half'" title="2.5 stars"></label>
+                      <input type="radio" th:id="'u-' + ${event.userOwner.id} + 'star2'" name="rating" value="4" disabled th:checked="${avgOwnerRating.get(event.id) == 4}">
+                      <label class="full" th:for="'u-' + ${event.userOwner.id} + 'star2'" title="2 stars"></label>
+                      <input type="radio" th:id="'u-' + ${event.userOwner.id} + 'star1half'" name="rating" value="3" disabled th:checked="${avgOwnerRating.get(event.id) == 3}">
+                      <label class="half" th:for="'u-' + ${event.userOwner.id} + 'star1half'" title="1.5 stars"></label>
+                      <input type="radio" th:id="'u-' + ${event.userOwner.id} + 'star1'" name="rating" value="2" disabled th:checked="${avgOwnerRating.get(event.id) == 2}">
+                      <label class="full" th:for="'u-' + ${event.userOwner.id} + 'star1'" title="1 star"></label>
+                      <input type="radio" th:id="'u-' + ${event.userOwner.id} + 'starhalf'" name="rating" value="1" disabled th:checked="${avgOwnerRating.get(event.id) == 1}">
+                      <label class="half" th:for="'u-' + ${event.userOwner.id} + 'starhalf'" title=" 0.5 stars"></label>
+                    </form>
+                    <p class="mb-0 ps-1"><span th:text="${numOwnerRatings.get(event.id)}">1</span> Ratings</p>
+                  </div>
+
                 </div>
               </div>
             </div>

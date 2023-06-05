@@ -24,7 +24,6 @@ const wsChat = {
             if(currentChatId != 'ini' && scroll){
                 scrollDownChat();
             }
-            // TODO corregir
             updateChatList(false, msg);
         }
     },
